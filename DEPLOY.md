@@ -109,10 +109,13 @@ python app/server.py 8100       # 指定学生端端口
 ### 3.4 克隆仓库
 
 ```powershell
-gh repo clone gfuiaewgfueiwsa/Linux实训考核系统
+gh repo clone gfuiaewgfueiwsa/Linux-Exam-System
 # 或
-git clone https://github.com/gfuiaewgfueiwsa/Linux实训考核系统.git
+git clone https://github.com/gfuiaewgfueiwsa/Linux-Exam-System.git
 ```
+
+> GitHub 仓库名只允许 ASCII 字符，中文名会被规范化掉，故仓库使用英文名
+> `Linux-Exam-System`；仓库描述、README 与文档标题仍为中文。
 
 ---
 
