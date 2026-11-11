@@ -1,0 +1,41 @@
+# Linux 实训考核系统 —— 公开仓库忽略规则
+# 仓库仅收录源码与文档；以下均为本地私有数据、运行时产物或第三方二进制。
+
+# AI 助手记忆（私有，不分发）
+.workbuddy/
+
+# 运行时数据：成绩库、考生姓名、考场配置、QEMU 虚拟机镜像
+# 首次启动由服务端自动创建 data/ 与默认 config.json，无需提交
+data/
+考试系统简化版/data/
+
+# 第三方二进制发行版（QEMU + cloudflared，约 800 MB，非本项目源码）
+tools/
+
+# 考试答案与课件文本（公开会泄露考题，教师本地自行保管）
+Linux实训考核系统_题目答案.docx
+linux期中考试daan.docx
+教师答案速查.md
+ppt_text.txt
+考试系统简化版/题目与答案.md
+
+# 旧版本源码备份
+backup/
+
+# 运行时生成的临时公网隧道地址
+公网地址.txt
+考试系统简化版/公网地址.txt
+
+# 缓存、日志、编辑器与系统垃圾
+__pycache__/
+*.py[cod]
+*.log
+*.tmp
+*.bak
+*.swp
+.pytest_cache/
+.screenshots/
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

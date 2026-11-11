@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linux 指令航线 · 教师控制台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230b0f14'/%3E%3Cpath d='M12 20l12 12-12 12' stroke='%23f2b544' stroke-width='5' fill='none'/%3E%3Cpath d='M30 46h22' stroke='%234fd1a5' stroke-width='5'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0b0f14;--panel:#101722;--panel2:#0d1420;--line:#1e2a3a;--text:#d9e2ec;--muted:#7f8fa3;--dim:#55637a;--amber:#f2b544;--mint:#4fd1a5;--red:#ef6b6b;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;--sans:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1000px 500px at 85% -10%,rgba(242,181,68,.07),transparent 70%),var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh}
+.shell{max-width:1280px;margin:0 auto;padding:0 22px}
+header{border-bottom:1px solid var(--line);background:rgba(11,15,20,.86);position:sticky;top:0;z-index:20;backdrop-filter:blur(8px)}
+.top{display:flex;align-items:center;gap:14px;min-height:64px;flex-wrap:wrap;padding:9px 0}
+.mark{width:30px;height:30px;border:1px solid var(--amber);display:grid;place-items:center;color:var(--amber);font-family:var(--mono);font-weight:700;font-size:13px}
+.brand h1{margin:0;font-family:var(--mono);font-size:17px;letter-spacing:.1em;font-weight:600}
+.brand small{display:block;color:var(--muted);font-size:11px;font-family:var(--mono)}
+.local{margin-left:auto;display:flex;gap:9px;align-items:center;font-family:var(--mono);font-size:11.5px;color:var(--muted);border:1px solid var(--line);padding:6px 10px}
+.local .dot{width:7px;height:7px;border-radius:50%;background:var(--mint)}
+.clock{font-family:var(--mono);color:var(--text)}
+main{padding:26px 0 70px}
+.gate{display:flex;align-items:center;gap:20px;flex-wrap:wrap;border:1px solid var(--line);background:linear-gradient(120deg,rgba(242,181,68,.06),var(--panel));padding:18px 22px;margin-bottom:16px}
+.gate .badge{font-family:var(--mono);font-size:12px;letter-spacing:.1em;padding:4px 10px;border:1px solid var(--line);color:var(--dim)}
+.gate .badge.before{color:var(--amber);border-color:rgba(242,181,68,.5)}
+.gate .badge.open{color:var(--mint);border-color:rgba(79,209,165,.5)}
+.gate .badge.closed{color:var(--red);border-color:rgba(239,107,107,.4)}
+.gate h2{margin:0;font-size:19px;font-weight:600}
+.gate p{margin:0;color:var(--muted);font-size:12.5px}
+.gate .big{margin-left:auto;text-align:right}
+.gate .big .n{font-family:var(--mono);font-size:28px;color:var(--amber);line-height:1.1}
+.gate .big .l{font-size:10px;color:var(--dim);letter-spacing:.12em;font-family:var(--mono)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-bottom:16px}
+.panel{background:var(--panel);border:1px solid var(--line);padding:18px}
+.panel h3{margin:0 0 12px;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.field{flex:1;min-width:160px}
+.field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px}
+.field input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 11px;font-family:var(--mono);font-size:14px;outline:none}
+.field input:focus{border-color:rgba(242,181,68,.6)}
+.btn{border:1px solid var(--amber);background:rgba(242,181,68,.1);color:var(--amber);padding:9px 14px;font-family:var(--mono);font-size:13px;cursor:pointer;min-height:40px;letter-spacing:.03em}
+.btn:hover{background:rgba(242,181,68,.18)}
+.btn.ghost{border-color:var(--line);color:var(--muted);background:transparent}
+.btn.ghost:hover{color:var(--text)}
+.btn.mint{border-color:var(--mint);color:var(--mint);background:rgba(79,209,165,.08)}
+.btn.red{border-color:rgba(239,107,107,.5);color:var(--red);background:rgba(239,107,107,.06)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hint{font-size:11.5px;color:var(--dim);margin-top:8px}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.stat{border:1px solid var(--line);background:var(--panel);padding:12px 14px}
+.stat .n{font-family:var(--mono);font-size:23px;line-height:1.2}
+.stat .l{font-size:10.5px;color:var(--dim);letter-spacing:.06em;margin-top:2px}
+.stat.gold .n{color:var(--amber)}.stat.mint .n{color:var(--mint)}
+.labnodes{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.labnode{border:1px solid var(--line);background:var(--panel);padding:7px 12px;display:flex;align-items:center;gap:8px;border-radius:6px}
+.labnode .dot{width:10px;height:10px;border-radius:50%;background:#8a8f98}
+.labnode .id{font-family:var(--mono);font-weight:700;font-size:13px}
+.labnode .st{font-size:11px;color:var(--dim)}
+.labnode.pending .dot{background:#8a8f98}
+.labnode.starting .dot{background:#f0ad4e;box-shadow:0 0 6px #f0ad4e}
+.labnode.idle .dot{background:#28a745;box-shadow:0 0 6px #28a745}
+.labnode.busy .dot{background:#dc3545;box-shadow:0 0 6px #dc3545}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid rgba(30,42,58,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+th{color:var(--dim);font-weight:500;font-size:10.5px;letter-spacing:.05em}
+td{color:var(--muted)}
+td.num{font-family:var(--mono);color:var(--text)}
+td.name{color:var(--text)}
+.bar{height:4px;background:var(--panel2);margin-top:5px}
+.bar i{display:block;height:100%;background:var(--mint)}
+.tag{font-family:var(--mono);font-size:10.5px;padding:2px 7px;border:1px solid var(--line);color:var(--dim)}
+.tag.run{color:var(--amber);border-color:rgba(242,181,68,.4)}
+.tag.done{color:var(--mint);border-color:rgba(79,209,165,.4)}
+.empty{padding:24px 8px;text-align:center;color:var(--dim);font-size:12px}
+.foot{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.foot .sp{margin-left:auto;color:var(--dim);font-size:11px;font-family:var(--mono)}
+.toast{position:fixed;left:50%;top:76px;transform:translateX(-50%) translateY(-12px);background:#0d1622;border:1px solid var(--line);padding:9px 16px;font-size:12.5px;font-family:var(--mono);opacity:0;pointer-events:none;transition:.25s;z-index:60}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.chart-wrap{background:var(--panel2);border:1px solid var(--line);padding:10px 12px}
+.legend{display:flex;gap:16px;align-items:center;margin-top:8px;font-size:11px;color:var(--muted);font-family:var(--mono)}
+.ldot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.ldot.run{background:var(--amber)}.ldot.done{background:var(--mint)}
+.logbox{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto}
+.logitem{border:1px solid var(--line);background:var(--panel2)}
+.logitem summary{cursor:pointer;padding:9px 12px;font-family:var(--mono);font-size:13px;color:var(--text);list-style:none;user-select:none}
+.logitem summary::-webkit-details-marker{display:none}
+.logitem summary::before{content:"▸ ";color:var(--amber)}
+.logitem[open] summary::before{content:"▾ "}
+.logitem .cnt{float:right;color:var(--dim);font-size:11px}
+.logitem ol{margin:0;padding:8px 12px 10px 34px;border-top:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--muted);max-height:260px;overflow:auto}
+.logitem ol li{padding:2px 0}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}.gate .big{margin-left:0;text-align:left}}
+@media(max-width:560px){.shell{padding:0 14px}.stats{grid-template-columns:repeat(2,1fr)}.top{gap:8px}.local{margin-left:0;width:100%}}
+.qgroup{border:1px solid var(--line);background:var(--panel2);margin-bottom:10px}
+.qgroup>summary{cursor:pointer;padding:10px 12px;font-family:var(--mono);font-size:13px;color:var(--text);list-style:none;display:flex;align-items:center;gap:8px;user-select:none}
+.qgroup>summary::-webkit-details-marker{display:none}
+.qgroup>summary::before{content:"▸ ";color:var(--amber)}
+.qgroup[open]>summary::before{content:"▾ "}
+.qgroup .act{flex:1;color:var(--muted)}
+.qitem{border-top:1px solid rgba(30,42,58,.7);padding:0 12px}
+.qitem>summary{cursor:pointer;padding:8px 0;font-size:12.5px;color:var(--muted);list-style:none;user-select:none}
+.qitem>summary::-webkit-details-marker{display:none}
+.qitem>summary::before{content:"▸ ";color:var(--dim);font-family:var(--mono)}
+.qitem[open]>summary::before{content:"▾ "}
+.qitem .no{font-family:var(--mono);color:var(--amber);margin:0 8px 0 2px}
+.qform{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 0 14px}
+.qform .full{grid-column:1/-1}
+.qform label{display:block;font-size:11px;color:var(--dim);margin-bottom:4px}
+.qform input,.qform textarea{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:7px 9px;font-size:12.5px;font-family:var(--mono);outline:none;resize:vertical}
+.qform input:focus,.qform textarea:focus{border-color:rgba(242,181,68,.6)}
+.qform textarea{min-height:54px;line-height:1.5}
+.qform .w-points{max-width:90px}
+@media(max-width:560px){.qform{grid-template-columns:1fr}}
+/* 学生详情弹层：独立于每 3 秒刷新的表格，刷新时不会自动关闭 */
+.modal{position:fixed;inset:0;z-index:80;display:none}
+.modal.on{display:block}
+body.modal-open{overflow:hidden}
+.modal-mask{position:absolute;inset:0;background:rgba(4,7,11,.74);backdrop-filter:blur(2px)}
+.modal-card{position:relative;margin:6vh auto 0;width:min(960px,calc(100vw - 32px));max-height:86vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);box-shadow:0 18px 60px rgba(0,0,0,.55)}
+.modal-head{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.modal-head h3{margin:0;font-family:var(--mono);font-size:13px;letter-spacing:.08em;color:var(--text)}
+.modal-sub{font-size:11.5px;color:var(--dim);margin-top:3px}
+.modal-head .btn{margin-left:auto;min-height:0;padding:5px 12px;font-size:12px;flex:none}
+.modal-body{overflow:auto;padding:10px 18px 18px;flex:1;min-height:0}
+.dtask{display:grid;grid-template-columns:28px minmax(140px,200px) minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:7px 2px;border-bottom:1px solid rgba(30,42,58,.7)}
+.dtask .no{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+.dtask .tt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.dtask code{min-width:0;color:var(--mint);font-family:var(--mono);font-size:11.5px;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:normal;background:var(--bg);border:1px solid var(--line);padding:3px 7px}
+.dtask .tag,.dtask .btn{justify-self:end}
+.dnote{padding:8px 10px;margin:8px 0 4px;border:1px solid rgba(242,181,68,.4);background:rgba(242,181,68,.08);color:var(--amber);font-size:11.5px;line-height:1.55}
+@media(max-width:720px){
+  .dtask{grid-template-columns:28px minmax(0,1fr) auto}
+  .dtask code{grid-column:2 / -1;grid-row:2}
+  .modal-card{margin-top:3vh}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="shell top">
+    <div class="mark">&gt;_</div>
+    <div class="brand"><h1>教师控制台</h1><small>本机 127.0.0.1:8001 · 免登录</small></div>
+    <div class="local"><span class="dot"></span><span>仅本机可访问</span><span class="clock" id="clock">--:--:--</span></div>
+  </div>
+</header>
+<main class="shell">
+  <div class="gate">
+    <div><span class="badge" id="gateBadge">读取中</span></div>
+    <div style="flex:1;min-width:220px">
+      <h2 id="gateTitle">正在读取考试状态</h2>
+      <p id="gateDesc">--</p>
+    </div>
+    <div class="big"><div class="n" id="gateBig">--:--</div><div class="l" id="gateBigLabel">COUNTDOWN</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>考试时间设置</h3>
+      <div class="row">
+        <div class="field"><label>开考时间（时分，日期默认今天）</label><input type="time" id="inStart"></div>
+        <div class="field" style="max-width:130px"><label>时长（分钟）</label><input type="number" id="inMinutes" min="1" max="600" value="120"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnSave">保存并开放</button>
+        <button class="btn mint" id="btnNow">立即开始</button>
+        <button class="btn red" id="btnClose">结束本场</button>
+      </div>
+      <div class="hint">开考日期默认为今天，只需设置开始时分与时长；未设置或未到开始时间，学生端考试模块保持锁定，到达后自动解锁。</div>
+    </div>
+    <div class="panel">
+      <h3>运行状态</h3>
+      <div class="stats" style="grid-template-columns:repeat(3,1fr);margin:0">
+        <div class="stat mint"><div class="n" id="sOnline">0</div><div class="l">在线学生</div></div>
+        <div class="stat"><div class="n" id="sCount">0</div><div class="l">已交卷</div></div>
+        <div class="stat gold"><div class="n" id="sAvg">0</div><div class="l">平均分</div></div>
+        <div class="stat"><div class="n" id="sMax">0</div><div class="l">最高分</div></div>
+        <div class="stat"><div class="n" id="sRate">0%</div><div class="l">通过率</div></div>
+        <div class="stat"><div class="n" id="sTotal">0</div><div class="l">参与人次</div></div>
+      </div>
+      <div class="labnodes" id="labNodes"></div>
+      <div class="hint">每 3 秒自动刷新。学生端通过公网隧道访问，教师端只监听本机。</div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:16px">
+    <h3>进行中的学生</h3>
+    <div class="table-wrap">
+      <table>
+        <colgroup><col style="width:13%"><col style="width:12%"><col style="width:20%"><col style="width:8%"><col style="width:10%"><col style="width:10%"><col style="width:9%"><col style="width:11%"><col style="width:7%"></colgroup>
+        <thead><tr><th>姓名</th><th>学号</th><th>进度</th><th>分数</th><th>退出全屏</th><th>剩余时间</th><th>状态</th><th>最后操作</th><th>操作</th></tr></thead>
+        <tbody id="liveBody"><tr><td colspan="9" class="empty">暂无进行中的学生</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>已交卷成绩</h3>
+    <div class="table-wrap">
+      <table>
+        <colgroup><col style="width:11%"><col style="width:11%"><col style="width:16%"><col style="width:8%"><col style="width:10%"><col style="width:8%"><col style="width:8%"><col style="width:16%"><col style="width:10%"></colgroup>
+        <thead><tr><th>姓名</th><th>学号</th><th>完成</th><th>分数</th><th>退出全屏</th><th>用时</th><th>状态</th><th>交卷时间</th><th>操作</th></tr></thead>
+        <tbody id="subBody"><tr><td colspan="9" class="empty">暂无成绩</td></tr></tbody>
+      </table>
+    </div>
+    <div class="foot">
+      <button class="btn ghost" id="btnExport">导出 CSV</button>
+      <button class="btn ghost" id="btnExportMatrix">导出成绩表</button>
+      <button class="btn ghost" id="btnRefresh">立即刷新</button>
+      <button class="btn red" id="btnClear">一键清除所有记录</button>
+      <span class="sp" id="footInfo">--</span>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:16px">
+    <h3>学生成绩动态排行</h3>
+    <div class="chart-wrap">
+      <svg id="chartSvg" viewBox="0 0 960 240" style="width:100%;height:auto;display:block" role="img"></svg>
+    </div>
+    <div class="legend"><span>每个学生一种颜色，仅用于区分学生；柱长=得分 · 右侧数字=当前分数</span></div>
+  </div>
+
+  <div class="panel">
+    <h3>机器命令日志（折叠查看）</h3>
+    <div id="logBox" class="logbox"><div class="empty">暂无日志</div></div>
+  </div>
+
+  <div class="panel">
+    <h3>考题管理</h3>
+    <div class="hint" style="margin-bottom:10px">编辑考题正文（标题 / 任务 / 预期 / 知识点 / 分值）后点击「保存考题」立即生效；判题规则不开放编辑。点击「重置为默认」可恢复原始考题。</div>
+    <div id="qList"><div class="empty">加载中…</div></div>
+    <div class="foot">
+      <button class="btn" id="btnSaveQ">保存考题</button>
+      <button class="btn ghost" id="btnResetQ">重置为默认</button>
+      <span class="sp" id="qInfo">--</span>
+    </div>
+  </div>
+</main>
+<div class="modal" id="detailModal" aria-hidden="true">
+  <div class="modal-mask" data-close-detail></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <div class="modal-head">
+      <div style="min-width:0">
+        <h3 id="detailTitle">学生详情</h3>
+        <div class="modal-sub" id="detailSub">--</div>
+      </div>
+      <button class="btn ghost" id="detailClose" type="button">关闭</button>
+    </div>
+    <div class="modal-body" id="detailBody"><div class="empty">加载中…</div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let cfgLoaded=false,gateCache=null;
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),1900);}
+async function api(path,body){
+  const opt=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{};
+  const res=await fetch(path,opt);let data={};try{data=await res.json();}catch(e){}
+  if(!res.ok){const e=new Error(data.error||('请求失败 '+res.status));e.data=data;throw e;}
+  return data;
+}
+function fmt(s){s=Math.max(0,Math.floor(s||0));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return h>0?(h+':'+String(m).padStart(2,'0')+':'+String(x).padStart(2,'0')):(String(m).padStart(2,'0')+':'+String(x).padStart(2,'0'));}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function gateView(g){
+  gateCache=g;const b=$('gateBadge');
+  const map={not_set:['未设置',''],before:['未开始','before'],open:['进行中','open'],closed:['已结束','closed']};
+  const it=map[g.status]||[g.status,''];b.textContent=it[0];b.className='badge '+it[1];
+  const titles={not_set:'尚未设置考试时间',before:'等待开考',open:'考试进行中',closed:'本场考试已结束'};
+  $('gateTitle').textContent=titles[g.status]||'考试状态';
+  $('gateDesc').textContent=(g.message||'')+(g.start?(' 开考 '+g.start.replace('T',' ')+' · '+g.minutes+' 分钟'):'');
+  if(g.status==='before'){$('gateBig').textContent=fmt(g.seconds_to_start);$('gateBigLabel').textContent='距离开考';}
+  else if(g.status==='open'){$('gateBig').textContent=fmt(g.remaining);$('gateBigLabel').textContent='本场剩余';}
+  else {$('gateBig').textContent='--:--';$('gateBigLabel').textContent=g.status==='closed'?'CLOSED':'NOT SET';}
+}
+async function loadConfig(){
+  const r=await api('/api/admin/config');
+  if(!cfgLoaded){
+    const st=r.config.exam_start||'';
+    $('inStart').value=st?st.slice(11,16):'';
+    $('inMinutes').value=r.config.exam_minutes||120;
+    cfgLoaded=true;
+  }
+  gateView(r.gate);
+}
+async function loadStats(){
+  const r=await api('/api/admin/stats');
+  $('sOnline').textContent=r.online||0;$('sCount').textContent=r.finished||0;
+  $('sAvg').textContent=Number(r.avg||0).toFixed(1);$('sMax').textContent=Number(r.max||0).toFixed(1);
+  $('sRate').textContent=(r.pass_rate||0)+'%';$('sTotal').textContent=r.count||0;
+  $('footInfo').textContent='参与 '+r.total_students+' · 在线 '+r.online+' · 已交卷 '+r.finished;
+  renderLab(r.lab);
+}
+function renderLab(lab){
+  const el=$('labNodes');
+  if(!el)return;
+  if(!lab||!lab.nodes||!lab.nodes.length){el.innerHTML='<span style="color:var(--dim)">Linux 环境未就绪</span>';return;}
+  const names={pending:'未启动',starting:'启动中',idle:'空闲',busy:'使用中'};
+  el.innerHTML=lab.nodes.map(n=>
+    '<div class="labnode '+n.status+'"><span class="dot"></span><span class="id">'+esc(n.id)+'</span><span class="st">'+(names[n.status]||n.status)+'</span></div>'
+  ).join('');
+}
+let liveCache={}, detailSid=null, detailSnapshot=null;
+async function loadLive(){
+  const rows=await api('/api/admin/live');
+  liveCache={};
+  (rows||[]).forEach(s=>{liveCache[s.sid]=s;});
+  const body=$('liveBody');
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="9" class="empty">暂无进行中的学生</td></tr>';
+  }else{
+    body.innerHTML=rows.map(s=>{
+      const pct=s.total?Math.round(s.done/s.total*100):0;
+      return '<tr><td class="name">'+esc(s.name)+'</td><td>'+esc(s.student_no||'—')+'</td>'+
+        '<td><div>'+s.done+' / '+s.total+'</div><div class="bar"><i style="width:'+pct+'%"></i></div></td>'+
+        '<td class="num">'+Number(s.score).toFixed(1)+'</td>'+
+        penaltyCell(s.penalty)+
+        '<td class="num">'+fmt(s.remaining)+'</td>'+
+        '<td><span class="tag '+(s.finished?'done':'run')+'">'+(s.finished?'已交卷':'作答中')+'</span></td>'+
+        '<td class="num">'+esc(s.last_active)+'</td>'+
+        '<td><button class="btn" type="button" style="min-height:0;padding:3px 8px;font-size:11px" data-detail="'+esc(s.sid)+'">详情</button> '+
+        '<button class="btn red" type="button" style="min-height:0;padding:3px 8px;font-size:11px" data-sid="'+esc(s.sid)+'">删除</button></td></tr>';
+    }).join('');
+  }
+  // 弹层独立于表格刷新：自动刷新只更新弹层内容，不会把已打开的详情关掉
+  if(detailSid)renderDetail();
+}
+function detailTasks(s){
+  if(s && Array.isArray(s.tasks) && s.tasks.length){
+    return {items:s.tasks, fallback:false};
+  }
+  const qs=Array.isArray(questionsCache)?questionsCache:[];
+  return {items:qs.map(q=>({key:q.key,no:q.no,title:q.title,expect:q.expect,done:null})), fallback:true};
+}
+function renderDetail(){
+  const live=liveCache[detailSid];
+  if(live)detailSnapshot=live;
+  const s=live||detailSnapshot;
+  const body=$('detailBody'), sub=$('detailSub');
+  if(!s){
+    sub.textContent='—';
+    body.innerHTML='<div class="empty">该学生已离开进行中列表（可能已交卷），请到「已交卷成绩」查看。</div>';
+    return;
+  }
+  const pct=s.total?Math.round(s.done/s.total*100):0;
+  sub.textContent=(s.name||'未命名')+(s.student_no?(' · '+s.student_no):'')+
+    ' · 进度 '+s.done+'/'+s.total+'（'+pct+'%）· 分数 '+Number(s.score).toFixed(1)+' · 剩余 '+fmt(s.remaining);
+  const data=detailTasks(s);
+  if(!data.items.length){
+    body.innerHTML='<div class="empty">暂无题目数据，请点击「立即刷新」后重试。</div>';
+    return;
+  }
+  let html='';
+  if(!live)html+='<div class="dnote">该学生已离开进行中列表（可能已交卷），以下为最后一次刷新到的详情。</div>';
+  if(data.fallback)html+='<div class="dnote">当前考试服务进程仍是旧版本，没有返回逐题通过状态；下面列出全部 '+data.items.length+
+    ' 题，可直接点「通过」手动补判。重启考试系统后，这里会自动显示每题是否已通过。</div>';
+  html+=data.items.map(t=>{
+    const tag=t.done===true
+      ? '<span class="tag done" style="font-size:11px">已通过</span>'
+      : '<button class="btn" type="button" style="min-height:0;padding:2px 8px;font-size:11px" data-force="'+esc(t.key)+'" data-sid="'+esc(s.sid)+'">通过</button>';
+    return '<div class="dtask">'+
+      '<span class="no">'+String(t.no||0).padStart(2,'0')+'</span>'+
+      '<span class="tt" title="'+esc(t.title||'')+'">'+esc(t.title||'（无标题）')+'</span>'+
+      '<code>'+esc(t.expect||'')+'</code>'+tag+'</div>';
+  }).join('');
+  body.innerHTML=html;
+}
+async function openDetail(sid){
+  detailSid=sid;
+  detailSnapshot=liveCache[sid]||null;
+  const m=$('detailModal');
+  m.classList.add('on');
+  m.setAttribute('aria-hidden','false');
+  document.body.classList.add('modal-open');
+  renderDetail();
+  if(!questionsCache||!questionsCache.length){
+    // 只补充题目缓存，不重绘“考题管理”表单，避免覆盖教师尚未保存的编辑
+    try{questionsCache=await api('/api/admin/questions');renderDetail();}catch(e){}
+  }
+}
+function closeDetail(){
+  detailSid=null;detailSnapshot=null;
+  const m=$('detailModal');
+  m.classList.remove('on');
+  m.setAttribute('aria-hidden','true');
+  document.body.classList.remove('modal-open');
+}
+async function forcePass(sid,key){
+  try{
+    const r=await api('/api/admin/force_pass',{sid:sid,key:key});
+    if(!r.ok){toast(r.error||'操作失败');return;}
+    toast('已手动通过：'+key);
+    refreshAll();
+  }catch(e){toast(e.message);}
+}
+async function loadSubs(){
+  const rows=await api('/api/admin/submissions');
+  const body=$('subBody');
+  if(!rows.length){body.innerHTML='<tr><td colspan="9" class="empty">暂无成绩</td></tr>';return;}
+  body.innerHTML=rows.map(r=>{
+    return '<tr><td class="name">'+esc(r.name)+'</td><td>'+esc(r.student_no||'—')+'</td>'+
+      '<td class="num">'+r.passed+' / '+r.total+'</td><td class="num">'+Number(r.score).toFixed(1)+'</td>'+
+      penaltyCell(r.penalty)+
+      '<td class="num">'+fmt(r.elapsed)+'</td>'+
+      '<td><span class="tag '+(r.finished?'done':'run')+'">'+(r.finished?'已交卷':'未交')+'</span></td>'+
+      '<td class="num">'+esc(r.finished_at||'—')+'</td>'+
+      '<td><button class="btn red" style="min-height:0;padding:3px 8px;font-size:11px" data-sid="'+esc(r.sid)+'">删除</button></td></tr>';
+  }).join('');
+}
+function penaltyCell(n){
+  n=Number(n||0);
+  if(n>0)return '<td class="num" style="color:var(--red)">退出全屏 ×'+n+'</td>';
+  return '<td class="num" style="color:var(--dim)">—</td>';
+}
+function renderChart(items){
+  const svg=$('chartSvg');if(!svg)return;
+  const W=960,padL=168,padR=56,padT=14,padB=14;
+  if(!items||!items.length){svg.innerHTML='<text x="480" y="130" fill="#55637a" font-size="13" text-anchor="middle">暂无成绩数据</text>';return;}
+  // 按分数降序排列，形成“左侧姓名纵列 + 横向彩色柱形图”的实时排行榜
+  const list=items.slice().sort(function(a,b){return (Number(b.score)||0)-(Number(a.score)||0);});
+  // 每个学生固定一种颜色（按排名轮询取色），用于区分学生，避免人数多时难以分辨
+  const PALETTE=['#4fd1a5','#f2b544','#ef6b6b','#5b8def','#b26ef0','#2fc1d0','#f08c4f','#8bd24f','#e06bd0','#6f8ff2','#f2d05b','#4fb3e0'];
+  const rowH=34,gap=6;
+  const H=padT+padB+list.length*rowH+(list.length-1)*gap;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.setAttribute('height',H);
+  const barX0=padL, barMax=W-padR-padL;
+  let g='';
+  list.forEach(function(s,i){
+    const y=padT+i*(rowH+gap);
+    const sc=Math.max(0,Math.min(100,Number(s.score)||0));
+    const col=PALETTE[i%PALETTE.length];
+    const w=barMax*sc/100;
+    const nm=s.name||'未命名';
+    const label=(nm.length>8?nm.slice(0,8)+'…':nm)+(s.student_no?'  '+s.student_no:'');
+    // 左侧姓名纵列
+    g+='<text x="'+(padL-10)+'" y="'+(y+rowH/2+4)+'" fill="#c9d4e3" font-size="13" text-anchor="end">'+esc(label)+'</text>';
+    // 轨道
+    g+='<rect x="'+barX0+'" y="'+y+'" width="'+barMax+'" height="'+rowH+'" rx="6" fill="#151d28"/>';
+    // 彩色柱形（得分横向延伸）
+    if(w>0.5){
+      g+='<rect x="'+barX0+'" y="'+y+'" width="'+w.toFixed(1)+'" height="'+rowH+'" rx="6" fill="'+col+'"/>';
+    }
+    // 头部显示分数
+    const labelX=Math.min(barX0+Math.max(w,2)+8, W-46);
+    g+='<text x="'+labelX+'" y="'+(y+rowH/2+4)+'" fill="'+col+'" font-size="13" font-weight="600">'+sc.toFixed(1)+'</text>';
+  });
+  svg.innerHTML=g;
+}
+async function loadChart(){
+  const items=await api('/api/admin/progress');
+  renderChart(items);
+}
+function renderLogs(rows){
+  const box=$('logBox');if(!box)return;
+  // 自动刷新会重建列表：先记住已展开的学生，刷新后保持展开状态
+  const openSids=new Set(Array.from(box.querySelectorAll('details.logitem[open]')).map(function(d){return d.dataset.logSid;}));
+  if(!rows||!rows.length){box.innerHTML='<div class="empty">暂无日志</div>';return;}
+  box.innerHTML=rows.map(function(r){
+    const cmds=(r.commands||[]).map(function(c){return '<li>'+esc(c)+'</li>';}).join('');
+    return '<details class="logitem" data-log-sid="'+esc(r.sid)+'"'+(openSids.has(r.sid)?' open':'')+'><summary>'+esc(r.name||'未命名')+'<span class="cnt">'+((r.commands||[]).length)+' 条</span></summary><ol>'+(cmds||'<li class="empty">暂无命令</li>')+'</ol></details>';
+  }).join('');
+}
+async function loadLogs(){
+  const rows=await api('/api/admin/logs');
+  renderLogs(rows);
+}
+async function delRecord(sid){
+  if(!confirm('确认删除该学生的记录？此操作不可恢复。'))return;
+  try{
+    await api('/api/admin/record/delete',{sid:sid});
+    if(detailSid===sid)closeDetail();
+    toast('已删除');refreshAll();
+  }
+  catch(e){toast(e.message);}
+}
+$('subBody').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-sid]');if(!b)return;delRecord(b.dataset.sid);
+});
+$('liveBody').addEventListener('click',e=>{
+  const d=e.target.closest('button[data-detail]');
+  if(d){openDetail(d.dataset.detail);return;}
+  const b=e.target.closest('button[data-sid]');if(!b)return;delRecord(b.dataset.sid);
+});
+$('detailBody').addEventListener('click',e=>{
+  const f=e.target.closest('button[data-force]');
+  if(f)forcePass(f.dataset.sid,f.dataset.force);
+});
+$('detailClose').addEventListener('click',closeDetail);
+$('detailModal').addEventListener('click',e=>{
+  if(e.target.hasAttribute('data-close-detail'))closeDetail();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&detailSid)closeDetail();
+});
+$('btnClear').addEventListener('click',async()=>{
+  if(!confirm('确定清除所有记录（含已交卷成绩与进行中学生）？此操作不可恢复。'))return;
+  try{await api('/api/admin/records/clear',{});toast('已清除所有记录');refreshAll();}
+  catch(e){toast(e.message);}
+});
+async function refreshAll(){
+  try{await Promise.all([loadConfig(),loadStats(),loadLive(),loadSubs(),loadChart(),loadLogs()]);}
+  catch(e){toast(e.message);}
+}
+// ---------------------------------------------------------------- 考题管理
+let questionsCache=null;
+async function loadQuestions(){
+  questionsCache=await api('/api/admin/questions');
+  renderQuestions(questionsCache);
+}
+function renderQuestions(rows){
+  const el=$('qList');if(!el)return;
+  if(!rows||!rows.length){el.innerHTML='<div class="empty">暂无考题</div>';$('qInfo').textContent='--';return;}
+  const groups={},order=[];
+  rows.forEach(function(q){
+    const act=q.act||'未分组';
+    if(!groups[act]){groups[act]=[];order.push(act);}
+    groups[act].push(q);
+  });
+  el.innerHTML=order.map(function(act){
+    const items=groups[act];
+    const body=items.map(function(q){
+      return '<details class="qitem" data-key="'+esc(q.key)+'">'+
+        '<summary><span class="no">'+String(q.no).padStart(2,'0')+'</span>'+esc(q.title||'（无标题）')+'</summary>'+
+        '<div class="qform">'+
+          '<div><label>标题</label><input data-f="title" value="'+esc(q.title)+'"></div>'+
+          '<div><label>预期结果</label><input data-f="expect" value="'+esc(q.expect)+'"></div>'+
+          '<div class="full"><label>任务描述</label><textarea data-f="task">'+esc(q.task)+'</textarea></div>'+
+          '<div><label>分值</label><input data-f="points" class="w-points" type="number" min="1" max="100" value="'+esc(q.points)+'"></div>'+
+          '<div class="full"><label>知识点讲解</label><textarea data-f="why">'+esc(q.why)+'</textarea></div>'+
+        '</div></details>';
+    }).join('');
+    return '<details class="qgroup" open><summary><span class="act">'+esc(act)+'</span><span style="color:var(--dim)">'+items.length+' 题</span></summary>'+body+'</details>';
+  }).join('');
+  $('qInfo').textContent='共 '+rows.length+' 题';
+}
+function collectQuestions(){
+  const byKey={};
+  (questionsCache||[]).forEach(function(q){byKey[q.key]=q;});
+  const out=[];
+  const list=$('qList');if(!list)return out;
+  list.querySelectorAll('.qitem').forEach(function(item){
+    const key=item.dataset.key;
+    const src=byKey[key]||{};
+    const q={key:key,act:src.act||''};
+    item.querySelectorAll('[data-f]').forEach(function(inp){q[inp.dataset.f]=inp.value;});
+    out.push(q);
+  });
+  return out;
+}
+async function saveQuestions(){
+  if(!questionsCache){toast('考题尚未加载');return;}
+  const questions=collectQuestions();
+  try{
+    const r=await api('/api/admin/questions',{action:'save',questions:questions});
+    toast('已保存 '+r.count+' 道考题');
+    await loadQuestions();
+  }catch(e){toast(e.message);}
+}
+async function resetQuestions(){
+  if(!confirm('重置为默认考题？所有自定义修改将被丢弃。'))return;
+  try{await api('/api/admin/questions',{action:'reset'});toast('已重置为默认考题');await loadQuestions();}
+  catch(e){toast(e.message);}
+}
+$('btnSaveQ').addEventListener('click',saveQuestions);
+$('btnResetQ').addEventListener('click',resetQuestions);
+$('btnSave').addEventListener('click',async()=>{
+  const start=$('inStart').value,minutes=parseInt($('inMinutes').value||'120',10);
+  if(!start){toast('请选择开考时间');return;}
+  try{const r=await api('/api/admin/config',{action:'save',start:start,minutes:minutes});gateView(r.gate);toast('已保存，考试时间生效');refreshAll();}
+  catch(e){toast(e.message);}
+});
+$('btnNow').addEventListener('click',async()=>{
+  const minutes=parseInt($('inMinutes').value||'120',10);
+  if(!confirm('立即开始本场考试？学生端将马上解锁。'))return;
+  try{const r=await api('/api/admin/config',{action:'now',minutes:minutes});gateView(r.gate);toast('考试已立即开始');refreshAll();}
+  catch(e){toast(e.message);}
+});
+$('btnClose').addEventListener('click',async()=>{
+  if(!confirm('结束本场考试？所有未交卷学生会自动交卷。'))return;
+  try{const r=await api('/api/admin/config',{action:'close'});gateView(r.gate);toast('本场已结束');refreshAll();}
+  catch(e){toast(e.message);}
+});
+$('btnExport').addEventListener('click',()=>{window.location.href='/api/admin/export.csv';});
+$('btnExportMatrix').addEventListener('click',()=>{window.location.href='/api/admin/export_matrix.csv';});
+$('btnRefresh').addEventListener('click',refreshAll);
+const tickClock=()=>{const d=new Date();$('clock').textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');};tickClock();
+setInterval(tickClock,1000);
+setInterval(()=>{if(!gateCache)return;if(gateCache.status==='before'){gateCache.seconds_to_start=Math.max(0,gateCache.seconds_to_start-1);$('gateBig').textContent=fmt(gateCache.seconds_to_start);if(gateCache.seconds_to_start===0)refreshAll();}else if(gateCache.status==='open'){gateCache.remaining=Math.max(0,gateCache.remaining-1);$('gateBig').textContent=fmt(gateCache.remaining);}},1000);
+setInterval(refreshAll,3000);
+refreshAll();
+loadQuestions();
+</script>
+</body>
+</html>

@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linux 实训</title>
+<link rel="stylesheet" href="/vendor/xterm.css">
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#11171f; --panel2:#161e28; --line:#243040;
+    --text:#e6edf5; --muted:#8b9bad; --accent:#3b82f6; --ok:#22c55e; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:radial-gradient(1200px 600px at 50% -10%,#16233a 0%,var(--bg) 60%);
+    color:var(--text);font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;flex-direction:column;
+  }
+  button{font-family:inherit;cursor:pointer}
+  .app{flex:1;display:flex;flex-direction:column;min-height:0}
+
+  /* ---------- 主界面 ---------- */
+  #home{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:40px}
+  .modules{display:flex;gap:28px;flex-wrap:wrap;justify-content:center}
+  .module{
+    width:280px;height:210px;border:1px solid var(--line);border-radius:18px;
+    background:linear-gradient(160deg,var(--panel2),var(--panel));
+    color:var(--text);font-size:34px;letter-spacing:6px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
+    transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+  }
+  .module small{font-size:13px;letter-spacing:0;font-weight:400;color:var(--muted)}
+  .module:hover{transform:translateY(-3px);border-color:#3a4c66;box-shadow:0 18px 40px rgba(0,0,0,.35)}
+  .module:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+  .gate{font-size:14px;color:var(--muted);min-height:20px}
+
+  /* ---------- 通用头 ---------- */
+  .bar{height:46px;display:flex;align-items:center;gap:14px;padding:0 14px;
+       border-bottom:1px solid var(--line);background:rgba(10,15,21,.85);flex:none}
+  .bar .grow{flex:1}
+  .bar button{background:#1b2532;color:var(--text);border:1px solid var(--line);
+              border-radius:8px;padding:6px 14px;font-size:13px}
+  .bar button:hover{border-color:#3a4c66}
+  .tag{font-size:13px;color:var(--muted)}
+  .tag b{color:var(--text);font-weight:600}
+  .mach{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:8px;
+        padding:3px 10px;font-family:Consolas,"Courier New",monospace}
+  .mach b{color:var(--ok);font-weight:700}
+  .mach-badge{position:absolute;top:10px;right:14px;z-index:10;
+              background:rgba(13,20,28,.92);border:1px solid var(--line);border-radius:8px;
+              padding:4px 12px;font-size:12px;color:var(--muted);
+              font-family:Consolas,"Courier New",monospace;pointer-events:none}
+  .mach-badge b{color:var(--ok);font-weight:700}
+
+  /* ---------- 终端 ---------- */
+  .term-wrap{flex:1;display:flex;min-height:0;background:#000}
+  #term-practice,#term-exam{flex:1;min-width:0;padding:6px 8px}
+  .xterm{height:100%}
+  .center-tip{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+              color:var(--muted);font-size:14px;pointer-events:none}
+  .exam-wait{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+             gap:10px;text-align:center;color:var(--muted);font-size:14px;background:rgba(0,0,0,.35);z-index:5}
+  .exam-wait b{color:var(--warn,#f2b544);font-size:22px;font-family:Consolas,"Courier New",monospace}
+
+  /* ---------- 考试 ---------- */
+  #view-exam{flex:1;display:flex;min-height:0}
+  .side{width:330px;flex:none;border-right:1px solid var(--line);background:var(--panel);
+        display:flex;flex-direction:column;min-height:0}
+  .side .head{padding:12px 14px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .side .head b{color:var(--text);font-size:15px}
+  .tasks{flex:1;overflow:auto;padding:8px}
+  .task{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:8px;
+        font-size:13px;color:var(--muted);cursor:default;line-height:1.45}
+  .task.active{background:#1d2c42;color:var(--text)}
+  .task .idx{width:20px;flex:none;text-align:right;font-variant-numeric:tabular-nums}
+  .task.done{color:#7ee2a8}
+  .task.done .idx::after{content:"✓";margin-left:4px}
+  .detail{border-top:1px solid var(--line);padding:12px 14px;font-size:13px;line-height:1.6;color:#c4d2e2}
+  .detail h4{margin:0 0 6px;font-size:14px;color:#fff}
+  .detail button{margin-top:10px;background:#1b2532;border:1px solid var(--line);color:var(--text);
+                 border-radius:8px;padding:5px 12px;font-size:12px}
+  .side .foot{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:8px}
+  .side .foot button{flex:1;padding:8px;border-radius:8px;border:1px solid var(--line);
+                     background:#1b2532;color:var(--text);font-size:13px}
+  .side .foot button:disabled{opacity:.45;cursor:not-allowed}
+  .side .foot button.primary{background:var(--accent);border-color:var(--accent)}
+
+  /* ---------- 表单 ---------- */
+  #view-exam-entry{flex:1;display:flex;align-items:center;justify-content:center}
+  .form{width:360px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px}
+  .form h3{margin:0 0 18px;font-size:18px;font-weight:600}
+  .form label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .form .tip{font-size:12px;color:var(--muted);line-height:1.5;margin:-6px 0 14px}
+  .form input{width:100%;padding:10px 12px;margin-bottom:14px;border-radius:10px;
+              border:1px solid var(--line);background:#0d141c;color:var(--text);font-size:14px;outline:none}
+  .form input:focus{border-color:var(--accent)}
+  .form .row{display:flex;gap:10px}
+  .form .row button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);
+                    background:#1b2532;color:var(--text);font-size:14px}
+  .form .row button.primary{background:var(--accent);border-color:var(--accent)}
+  .msg{min-height:18px;font-size:13px;color:var(--bad);margin-top:4px}
+
+  /* ---------- 结果 ---------- */
+  #view-result{flex:1;display:flex;align-items:center;justify-content:center}
+  .result{width:420px;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+          padding:28px;text-align:center}
+  .result .score{font-size:64px;font-weight:700;line-height:1;margin:8px 0 6px}
+  .result .sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+  .result button{padding:10px 26px;border-radius:10px;border:1px solid var(--line);
+                 background:#1b2532;color:var(--text);font-size:14px}
+  .hidden{display:none!important}
+
+  #fs-lock{position:fixed;inset:0;background:rgba(6,10,16,.78);-webkit-backdrop-filter:blur(12px) saturate(.8);backdrop-filter:blur(12px) saturate(.8);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px}
+  #fs-lock.hidden{display:none}
+  #fs-lock .t{font-size:20px;color:var(--warn,#f2b544);font-weight:600}
+  #fs-lock .s{color:#8b9bad;font-size:14px;max-width:420px;line-height:1.6}
+  #fs-lock button{padding:10px 22px;font-size:14px}
+
+  @media (max-width:760px){
+    .side{width:250px}
+    .module{width:200px;height:150px;font-size:26px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 主界面：只有练习、考试两个入口 -->
+  <section id="home">
+    <div class="modules">
+      <button class="module" id="card-practice">练习</button>
+      <button class="module" id="card-exam" disabled>考试<small id="exam-brief"></small></button>
+    </div>
+    <div class="gate" id="gate-line"></div>
+  </section>
+
+  <!-- 练习 -->
+  <section id="view-practice" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
+    <div class="bar">
+      <button id="practice-back">返回</button>
+      <div class="grow"></div>
+      <span class="tag" id="practice-state"></span>
+      <button id="practice-reconnect">重新连接</button>
+      <span class="mach" id="practice-machine"></span>
+    </div>
+    <div class="term-wrap"><div id="term-practice"></div></div>
+  </section>
+
+  <!-- 考试入口 -->
+  <section id="view-exam-entry" class="hidden">
+    <div class="form">
+      <h3>进入考试</h3>
+      <label for="in-name">姓名</label>
+      <input id="in-name" maxlength="32" autocomplete="off">
+      <div class="tip">姓名即你的虚拟机绑定键：断网、刷新、关标签页甚至换浏览器后，填同一个姓名就回到原来那台 Linux，已做的题目与文件都还在。同名同姓会共用同一台机器，请确保姓名唯一。</div>
+      <div class="row">
+        <button id="entry-back">返回</button>
+        <button class="primary" id="entry-go">开始</button>
+      </div>
+      <div class="msg" id="entry-msg"></div>
+    </div>
+  </section>
+
+  <!-- 考试 -->
+  <section id="view-exam" class="hidden">
+    <aside class="side">
+      <div class="head">
+        <div><b id="exam-name"></b></div>
+        <div style="margin-top:6px"><span id="exam-status-label">剩余</span> <b id="exam-left">--:--</b>　得分 <b id="exam-score">0</b></div>
+      </div>
+      <div class="tasks" id="task-list"></div>
+      <div class="detail" id="task-detail"></div>
+      <div class="foot">
+        <button id="btn-reconnect">重新连接</button>
+        <button class="primary" id="btn-finish">交卷</button>
+      </div>
+    </aside>
+    <div class="term-wrap" style="position:relative">
+      <div id="term-exam"></div>
+      <div id="exam-wait" class="exam-wait hidden">距开考 <b id="wait-left">--:--</b><br>开考后自动连接 Linux 环境，可先查看左侧题目</div>
+      <span class="mach-badge" id="exam-machine"></span>
+    </div>
+  </section>
+
+  <!-- 结果 -->
+  <section id="view-result" class="hidden">
+    <div class="result">
+      <div class="sub" id="res-name"></div>
+      <div class="score" id="res-score">0</div>
+      <div class="sub" id="res-sub"></div>
+      <button id="res-back">返回主界面</button>
+    </div>
+  </section>
+
+</div>
+
+<div id="fs-lock" class="hidden">
+  <div class="t">已退出全屏</div>
+  <div class="s">考试期间必须保持全屏模式。请点击下方按钮恢复全屏后继续作答，否则无法操作考试界面。</div>
+  <button class="primary" id="fs-restore">恢复全屏继续考试</button>
+</div>
+
+<script src="/vendor/xterm.js"></script>
+<script src="/vendor/addon-fit.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var SID_KEY = "lab_exam_sid";
+  var state = { sid: null, tasks: [], selected: null, remaining: 0, score: 0, finished: false,
+                practiceToken: null, conn: null, term: null, timer: null, gateTimer: null,
+                doneKeys: [],
+                early: false, secondsToStart: 0, gate: null };
+
+  function rememberSid(sid) {
+    try {
+      if (sid) sessionStorage.setItem(SID_KEY, sid);
+      else sessionStorage.removeItem(SID_KEY);
+    } catch (e) {}
+  }
+  function rememberedSid() {
+    try { return sessionStorage.getItem(SID_KEY) || ""; } catch (e) { return ""; }
+  }
+
+  // ---------------------------------------------------------------- 考试全屏锁定
+  var examActive = false;
+
+  function enterFullscreen() {
+    var el = document.documentElement;
+    try {
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+    } catch (e) {}
+    return Promise.reject(new Error("unsupported"));
+  }
+  function exitFullscreen() {
+    try {
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    } catch (e) {}
+  }
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+  var fsWasFull = false;
+  function reportFullscreenExit() {
+    // 报告一次退出全屏违规：后端记录并自动扣 1 分
+    if (!state.sid || state.finished) return;
+    post("/api/exam/fullscreen", { sid: state.sid }).then(function (r) {
+      if (r.ok && r.body && typeof r.body.score === "number") {
+        state.score = r.body.score;
+        $("exam-score").textContent = r.body.score;
+      }
+    }).catch(function () {});
+  }
+  function onFsChange() {
+    var fs = isFullscreen();
+    if (examActive) {
+      // 考试进行中若从全屏退出，记录违规扣分，并用覆盖层锁定界面
+      if (fsWasFull && !fs) {
+        reportFullscreenExit();
+      }
+      if (!fs) {
+        $("fs-lock").classList.remove("hidden");
+      } else {
+        $("fs-lock").classList.add("hidden");
+      }
+    }
+    fsWasFull = fs;
+  }
+  document.addEventListener("fullscreenchange", onFsChange);
+  document.addEventListener("webkitfullscreenchange", onFsChange);
+
+  // 考试期间拦截可触发退出的按键与右键（Esc / F11 / Ctrl+R）
+  document.addEventListener("keydown", function (e) {
+    if (!examActive) return;
+    if (e.key === "Escape" || e.key === "F11" ||
+        (e.ctrlKey && (e.key === "r" || e.key === "R"))) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+  document.addEventListener("contextmenu", function (e) {
+    if (examActive) e.preventDefault();
+  });
+  window.addEventListener("beforeunload", function (e) {
+    if (examActive) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  // ---------------------------------------------------------------- 视图切换
+  function show(id) {
+    ["home", "view-practice", "view-exam-entry", "view-exam", "view-result"].forEach(function (v) {
+      $(v).classList.toggle("hidden", v !== id);
+    });
+    if (id !== "home" && state.gateTimer) {
+      clearInterval(state.gateTimer); state.gateTimer = null;
+    }
+  }
+
+  // ---------------------------------------------------------------- HTTP
+  function post(url, data) {
+    return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(data || {}) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); });
+  }
+  function get(url) {
+    return fetch(url).then(function (r) { return r.json(); });
+  }
+
+  // ---------------------------------------------------------------- 终端
+  function createTerm(el) {
+    var term = new Terminal({
+      cursorBlink: true, fontSize: 14, lineHeight: 1.2,
+      fontFamily: "Consolas, 'Cascadia Mono', 'Courier New', monospace",
+      theme: { background: "#000000", foreground: "#dbe6f2", cursor: "#4da3ff",
+               selectionBackground: "#264f78" },
+      scrollback: 5000, convertEol: false, allowProposedApi: true
+    });
+    var fit = new FitAddon.FitAddon();
+    term.loadAddon(fit);
+    term.open(el);
+    try { fit.fit(); } catch (e) {}
+    term._fit = fit;
+    return term;
+  }
+
+  // 连接会话：负责建立 WebSocket、心跳保活、断线自动重连。
+  // opts.getUrl 返回 Promise<ws路径>（练习模式每次重连需重新申请 token，考试模式复用 sid）。
+  function createConnection(term, opts) {
+    var enc = new TextEncoder();
+    var c = {
+      term: term, getUrl: opts.getUrl, onJson: opts.onJson,
+      ws: null, closed: false, retry: 0, maxRetry: opts.maxRetry || 8,
+      heartbeat: null, _pongMiss: 0, _retryTimer: null,
+      _lastSize: "", _sizeTimer: null, _ro: null
+    };
+
+    // 键盘输入：只绑定一次，始终发往“当前”连接
+    var dataSub = term.onData(function (d) {
+      if (c.ws && c.ws.readyState === 1) c.ws.send(enc.encode(d));
+    });
+
+    function sendSize(force) {
+      try {
+        term._fit.fit();
+        var size = term.rows + "x" + term.cols;
+        if (!force && size === c._lastSize) return;
+        clearTimeout(c._sizeTimer);
+        c._sizeTimer = setTimeout(function () {
+          var now = term.rows + "x" + term.cols;
+          if (now === c._lastSize) return;
+          c._lastSize = now;
+          if (c.ws && c.ws.readyState === 1) {
+            c.ws.send(JSON.stringify({ type: "resize", rows: term.rows, cols: term.cols }));
+          }
+        }, 250);
+      } catch (e) {}
+    }
+    function onWinResize() { sendSize(false); }
+    window.addEventListener("resize", onWinResize);
+    c._ro = new ResizeObserver(function () { sendSize(false); });
+    c._ro.observe(term.element.parentElement);
+
+    function stopHeartbeat() {
+      if (c.heartbeat) { clearInterval(c.heartbeat); c.heartbeat = null; }
+    }
+    function startHeartbeat() {
+      stopHeartbeat();
+      c._pongMiss = 0;
+      c.heartbeat = setInterval(function () {
+        if (!c.ws || c.ws.readyState !== 1) return;
+        // 连续 3 次心跳未收到 pong（约 45 秒）判定死连接，主动关闭触发重连
+        if (c._pongMiss >= 3) {
+          try { c.ws.close(); } catch (e) {}
+          return;
+        }
+        c._pongMiss++;
+        try { c.ws.send(JSON.stringify({ type: "ping" })); } catch (e) {}
+      }, 15000);
+    }
+
+    function connect() {
+      Promise.resolve(c.getUrl()).then(function (url) {
+        if (c.closed) return;
+        var proto = location.protocol === "https:" ? "wss:" : "ws:";
+        try { term._fit.fit(); } catch (e) {}
+        var q = (url.indexOf("?") >= 0 ? "&" : "?") + "rows=" + term.rows + "&cols=" + term.cols;
+        var ws = new WebSocket(proto + "//" + location.host + url + q);
+        ws.binaryType = "arraybuffer";
+        c.ws = ws;
+        c._lastSize = term.rows + "x" + term.cols;
+        ws.onopen = function () {
+          c.retry = 0;
+          startHeartbeat();
+          sendSize(true);
+        };
+        ws.onmessage = function (ev) {
+          // 收到任何数据都说明连接活着（含服务端二进制输出/状态/协议层 pong）
+          c._pongMiss = 0;
+          if (typeof ev.data === "string") {
+            var msg = null;
+            try { msg = JSON.parse(ev.data); } catch (e) {}
+            if (msg && msg.type === "pong") { return; }
+            if (msg) { try { c.onJson(msg); } catch (e) {} }
+          } else {
+            term.write(new Uint8Array(ev.data));
+          }
+        };
+        ws.onerror = function () {};
+        ws.onclose = function () {
+          stopHeartbeat();
+          if (c.ws === ws) c.ws = null;
+          if (c.closed) return;            // 主动关闭（返回/交卷）不再提示
+          c.onJson({ type: "closed" });
+          scheduleRetry();
+        };
+      }).catch(function () {
+        if (!c.closed) scheduleRetry();
+      });
+    }
+
+    function scheduleRetry() {
+      if (c.closed) return;
+      if (c.retry >= c.maxRetry) { c.onJson({ type: "giveup" }); return; }
+      c.retry++;
+      var delay = Math.min(3000, 400 * c.retry);
+      clearTimeout(c._retryTimer);
+      c._retryTimer = setTimeout(connect, delay);
+    }
+
+    c.start = function () { c.closed = false; c.retry = 0; connect(); };
+    c.reconnect = function () {           // 手动重连
+      c.closed = false; c.retry = 0;
+      clearTimeout(c._retryTimer);
+      if (c.ws) { try { c.ws.close(); } catch (e) {} c.ws = null; }
+      connect();
+    };
+    c.dispose = function () {
+      c.closed = true;
+      stopHeartbeat();
+      clearTimeout(c._retryTimer);
+      clearTimeout(c._sizeTimer);
+      if (c.ws) { try { c.ws.close(); } catch (e) {} c.ws = null; }
+      if (c._ro) { try { c._ro.disconnect(); } catch (e) {} }
+      // 重连会新建一个 connection，旧的监听必须摘掉，否则每点一次“重新连接”
+      // 就在 window 和终端上多留一份回调。
+      window.removeEventListener("resize", onWinResize);
+      if (dataSub && dataSub.dispose) { try { dataSub.dispose(); } catch (e) {} }
+    };
+    return c;
+  }
+
+  // ---------------------------------------------------------------- 主界面
+  var EARLY_SECONDS = 300;   // 与后端 server.EARLY_SECONDS 保持一致
+
+  function gateLine(g) {
+    state.gate = g;
+    var btn = $("card-exam");
+    var brief = $("exam-brief");
+    var line = $("gate-line");
+    if (!g) { btn.disabled = true; line.textContent = ""; return; }
+    if (g.status === "open") {
+      btn.disabled = false; brief.textContent = "";
+      line.textContent = g.remaining > 0 ? ("本场剩余 " + fmtTime(g.remaining)) : "";
+    } else if (g.status === "before") {
+      // 后端只允许开考前 5 分钟内进入，之前点“开始”必然被 403 拒绝，
+      // 所以这里保持禁用，等倒计时进入窗口再自动放开。
+      var early = g.seconds_to_start > 0 && g.seconds_to_start <= EARLY_SECONDS;
+      btn.disabled = !early;
+      brief.textContent = early ? "可提前进入" : "未开始";
+      line.textContent = "距开考 " + fmtTime(g.seconds_to_start) +
+        (early ? "" : "（开考前 5 分钟开放进入）");
+    } else {
+      btn.disabled = true; brief.textContent = g.status === "not_set" ? "未开放" : "已结束";
+      line.textContent = g.message || "";
+    }
+  }
+
+  function fmtTime(sec) {
+    sec = Math.max(0, sec | 0);
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return (h > 0 ? h + ":" : "") + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  }
+
+  function loadHome() {
+    if (state.conn) { try { state.conn.dispose(); } catch (e) {} state.conn = null; }
+    if (state.term) { try { state.term.dispose(); } catch (e) {} }
+    state.term = null;
+    state.practiceToken = null;
+    state.sid = null; state.tasks = []; state.selected = null;
+    state.doneKeys = []; state.finished = false; state.score = 0; state.remaining = 0;
+    state.early = false; state.secondsToStart = 0;
+    examActive = false;
+    rememberSid(null);
+    if (state.timer) { clearInterval(state.timer); state.timer = null; }
+    $("fs-lock").classList.add("hidden");
+    $("exam-wait").classList.add("hidden");
+    show("home");
+    $("card-exam").disabled = true;
+    refreshGate();
+    // 主界面上持续刷新闸门：学生提前打开页面时，到点自动放开“考试”入口。
+    if (state.gateTimer) clearInterval(state.gateTimer);
+    state.gateTimer = setInterval(refreshGate, 5000);
+  }
+
+  function refreshGate() {
+    get("/api/exam/gate").then(gateLine).catch(function () { gateLine(null); });
+  }
+
+  // ---------------------------------------------------------------- 练习
+  function startPractice() {
+    $("practice-state").textContent = "连接中…";
+    $("practice-machine").textContent = "";
+    if (state.conn) { try { state.conn.dispose(); } catch (e) {} state.conn = null; }
+    var term = state.term;
+    if (!term) {
+      term = createTerm($("term-practice"));
+      state.term = term;
+    }
+    state.conn = createConnection(term, {
+      getUrl: function () {
+        // 练习断开后 token 会被回收，重连需重新申请
+        return post("/api/practice/start", {}).then(function (r) {
+          if (!r.ok) throw new Error(r.body.error || "启动失败");
+          state.practiceToken = r.body.token;
+          return r.body.ws;
+        });
+      },
+      onJson: function (msg) {
+        if (msg.type === "status") $("practice-state").textContent = msg.message;
+        else if (msg.type === "error") $("practice-state").textContent = msg.message;
+        else if (msg.type === "machine") $("practice-machine").innerHTML = msg.id ? ("机器 <b>" + escapeHtml(msg.id) + "</b>") : "";
+        else if (msg.type === "closed") $("practice-state").textContent = "连接已断开，正在重连…";
+        else if (msg.type === "giveup") $("practice-state").textContent = "连接中断，请点击“重新连接”";
+      }
+    });
+    state.conn.start();
+    term.focus();
+  }
+
+  $("card-practice").addEventListener("click", function () {
+    show("view-practice");
+    startPractice();
+  });
+
+  $("practice-reconnect").addEventListener("click", function () {
+    if (!state.conn) return;
+    $("practice-state").textContent = "重新连接中…";
+    state.conn.reconnect();
+  });
+
+  $("practice-back").addEventListener("click", function () {
+    if (state.practiceToken) { post("/api/practice/close", { token: state.practiceToken }); }
+    $("practice-machine").textContent = "";
+    loadHome();
+  });
+
+  // ---------------------------------------------------------------- 考试入口
+  $("card-exam").addEventListener("click", function () {
+    if (!$("in-name").value) {
+      try { $("in-name").value = localStorage.getItem("lab_name") || ""; } catch (e) {}
+    }
+    $("entry-msg").textContent = "";
+    show("view-exam-entry");
+    $("in-name").focus();
+  });
+  $("entry-back").addEventListener("click", loadHome);
+
+  $("entry-go").addEventListener("click", function () {
+    var name = $("in-name").value.trim();
+    if (!name) { $("entry-msg").textContent = "请填写姓名"; return; }
+    try { localStorage.setItem("lab_name", name); } catch (e) {}
+    $("entry-msg").textContent = "";
+    post("/api/exam/start", { name: name }).then(function (r) {
+      if (!r.ok) { $("entry-msg").textContent = r.body.error || "无法开始"; return; }
+      applyState(r.body, true);
+      show("view-exam");
+    }).catch(function () { $("entry-msg").textContent = "网络异常"; });
+  });
+
+  // ---------------------------------------------------------------- 考试
+  function applyState(payload, initial) {
+    state.sid = payload.sid || state.sid;
+    rememberSid(state.sid);
+    state.tasks = payload.tasks || state.tasks;
+    state.selected = payload.selected || null;
+    state.score = payload.score || 0;
+    state.remaining = payload.remaining || 0;
+    state.finished = !!payload.finished;
+    // 进度勾选来自 tasks[].done：刷新恢复会话时没有 WebSocket state 推送，
+    // 不从这里播种的话左侧 41 题会全部显示成未完成。
+    if (payload.tasks) {
+      state.doneKeys = payload.tasks.filter(function (t) { return t.done; })
+        .map(function (t) { return t.key; });
+    }
+    if (payload.gate) state.gate = payload.gate;
+    $("exam-name").textContent = payload.name || $("in-name").value;
+    $("exam-score").textContent = state.score;
+    renderTasks();
+    renderDetail();
+    if (initial) beginExam();
+  }
+
+  function renderTasks() {
+    var list = $("task-list");
+    var done = {};
+    (state.doneKeys || []).forEach(function (k) { done[k] = 1; });
+    var html = "";
+    state.tasks.forEach(function (t, i) {
+      var cls = "task";
+      if (state.selected && t.key === state.selected.key) cls += " active";
+      if (done[t.key]) cls += " done";
+      html += '<div class="' + cls + '" data-key="' + t.key + '">' +
+              '<span class="idx">' + (i + 1) + '</span><span>' + escapeHtml(t.title) + '</span></div>';
+    });
+    list.innerHTML = html;
+  }
+
+  function renderDetail() {
+    var box = $("task-detail");
+    var t = state.selected;
+    if (!t) { box.innerHTML = ""; return; }
+    var html = "<h4>" + escapeHtml(t.title) + "</h4><div>" + escapeHtml(t.task || "") + "</div>";
+    box.innerHTML = html;
+  }
+
+  $("btn-reconnect").addEventListener("click", function () {
+    if (!state.sid) return;
+    if (state.term) state.term.writeln("\r\n正在重新连接…");
+    openExamTerminal();
+  });
+
+  $("btn-finish").addEventListener("click", function () {
+    if (!state.sid) return;
+    if (!confirm("确认交卷？")) return;
+    post("/api/exam/finish", { sid: state.sid }).then(function (r) { showResult(r.body); });
+  });
+
+  function beginExam() {
+    examActive = true;
+    fsWasFull = false;
+    var el = document.documentElement;
+    var canFs = !!(el.requestFullscreen || el.webkitRequestFullscreen);
+    enterFullscreen().then(function () {
+      $("fs-lock").classList.add("hidden");
+    }).catch(function () {});
+    // 全屏请求是异步的，且刷新恢复时浏览器会以“缺用户手势”拒绝：1.5 秒后
+    // 复查一次，仍未全屏就压上覆盖层，让学生点按钮补一次手势。
+    setTimeout(function () {
+      if (examActive && canFs && !isFullscreen()) $("fs-lock").classList.remove("hidden");
+    }, 1500);
+    var g = state.gate || {};
+    var early = g.status === "before" && g.seconds_to_start > 0;
+    state.early = early;
+    $("btn-reconnect").disabled = early;
+    $("btn-finish").disabled = early;
+    if (early) {
+      state.secondsToStart = g.seconds_to_start;
+      $("exam-wait").classList.remove("hidden");
+    } else {
+      $("exam-wait").classList.add("hidden");
+      openExamTerminal();
+    }
+    startTimer();
+  }
+
+  function updateExamHeader() {
+    if (state.early) {
+      $("exam-status-label").textContent = "距开考";
+      $("exam-left").textContent = fmtTime(state.secondsToStart);
+      $("wait-left").textContent = fmtTime(state.secondsToStart);
+    } else {
+      $("exam-status-label").textContent = "剩余";
+      $("exam-left").textContent = fmtTime(state.remaining);
+    }
+  }
+
+  function startTimer() {
+    if (state.timer) clearInterval(state.timer);
+    state.timer = setInterval(function () {
+      if (state.early) {
+        state.secondsToStart = Math.max(0, state.secondsToStart - 1);
+        if (state.secondsToStart <= 0) {
+          state.early = false;
+          $("exam-wait").classList.add("hidden");
+          $("btn-reconnect").disabled = false;
+          $("btn-finish").disabled = false;
+          openExamTerminal();
+        }
+      }
+      state.remaining = Math.max(0, state.remaining - 1);
+      updateExamHeader();
+      if (state.remaining <= 0) {
+        clearInterval(state.timer); state.timer = null;
+        autoFinish();
+      }
+    }, 1000);
+    updateExamHeader();
+  }
+
+  function autoFinish() {
+    if (!state.sid || state.finished) return;
+    state.finished = true;
+    post("/api/exam/finish", { sid: state.sid }).then(function (r) {
+      showResult(r.body);
+    }).catch(function () {
+      get("/api/result?sid=" + encodeURIComponent(state.sid)).then(showResult).catch(function () {});
+    });
+  }
+
+  function openExamTerminal() {
+    $("exam-machine").textContent = "";
+    if (state.conn) { try { state.conn.dispose(); } catch (e) {} state.conn = null; }
+    var term = state.term;
+    if (!term) {
+      term = createTerm($("term-exam"));
+      state.term = term;
+    }
+    state.conn = createConnection(term, {
+      getUrl: function () {
+        // 考试会话断开不回收虚拟机，直接用原 sid 重连
+        return Promise.resolve("/ws/term?mode=exam&sid=" + encodeURIComponent(state.sid));
+      },
+      maxRetry: 40,
+      onJson: function (msg) {
+        if (msg.type === "state") {
+          state.score = msg.score;
+          state.doneKeys = msg.records || [];
+          state.finished = !!msg.finished;
+          $("exam-score").textContent = msg.score;
+          if (msg.selected) state.selected = msg.selected;
+          renderTasks(); renderDetail();
+          if (msg.finished) {
+            get("/api/result?sid=" + encodeURIComponent(state.sid)).then(showResult);
+          }
+        } else if (msg.type === "status") {
+          if (msg.message) $("exam-machine").textContent = msg.message;
+        } else if (msg.type === "error") {
+          term.writeln("\r\n" + msg.message);
+        } else if (msg.type === "machine") {
+          $("exam-machine").innerHTML = msg.id ? ("机器 <b>" + escapeHtml(msg.id) + "</b>") : "";
+        } else if (msg.type === "closed") {
+          // 自动重连期间不覆盖启动状态提示
+        } else if (msg.type === "giveup") {
+          term.writeln("\r\n连接中断，请点击“重新连接”按钮");
+        }
+      }
+    });
+    state.conn.start();
+    term.focus();
+  }
+
+  function showResult(s) {
+    examActive = false;
+    rememberSid(null);
+    $("fs-lock").classList.add("hidden");
+    exitFullscreen();
+    if (state.timer) { clearInterval(state.timer); state.timer = null; }
+    $("res-name").textContent = s.name || "";
+    $("res-score").textContent = s.score != null ? s.score : 0;
+    var passed = s.passed;
+    if (passed == null) {
+      passed = 0;
+      (s.detail || []).forEach(function (d) { if (d.status === "pass") passed++; });
+    }
+    $("res-sub").textContent = "考试结束 · 通过 " + passed + " / " + (s.total || 0);
+    if (state.conn) { try { state.conn.dispose(); } catch (e) {} state.conn = null; }
+    show("view-result");
+  }
+
+  $("res-back").addEventListener("click", loadHome);
+  $("fs-restore").addEventListener("click", function () {
+    enterFullscreen().then(function () { $("fs-lock").classList.add("hidden"); })
+      .catch(function () {});
+  });
+  $("in-name").addEventListener("keydown", function (e) { if (e.key === "Enter") $("entry-go").click(); });
+
+  function escapeHtml(text) {
+    return String(text == null ? "" : text)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function rememberedName() {
+    try { return localStorage.getItem("lab_name") || ""; } catch (e) { return ""; }
+  }
+
+  function tryResume() {
+    // 姓名是虚拟机的绑定键：sid 还在就精确找回，sid 随标签页关闭丢了就凭姓名
+    // 找回同一台 Linux。后端只找回不新建，找不到就回主界面等学生自己点「开始」。
+    var sid = rememberedSid();
+    var name = rememberedName();
+    if (!sid && !name) { loadHome(); return; }
+    post("/api/exam/resume", { sid: sid, name: name }).then(function (r) {
+      if (!r.ok || !r.body || !r.body.sid) { loadHome(); return; }
+      if (r.body.finished) {
+        get("/api/result?sid=" + encodeURIComponent(r.body.sid))
+          .then(showResult).catch(function () { loadHome(); });
+        return;
+      }
+      $("in-name").value = r.body.name || name;
+      applyState(r.body, true);
+      show("view-exam");
+    }).catch(function () { loadHome(); });
+  }
+
+  tryResume();
+})();
+</script>
+</body>
+</html>

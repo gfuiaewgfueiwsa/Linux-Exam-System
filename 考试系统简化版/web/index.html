@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linux 基础命令实操考核</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230b0f14'/%3E%3Cpath d='M12 20l12 12-12 12' stroke='%23f2b544' stroke-width='5' fill='none'/%3E%3Cpath d='M30 46h22' stroke='%234fd1a5' stroke-width='5'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0b0f14;--panel:#101722;--panel2:#0d1420;--line:#1e2a3a;--text:#d9e2ec;--muted:#7f8fa3;--dim:#55637a;--amber:#f2b544;--mint:#4fd1a5;--red:#ef6b6b;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;--sans:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(900px 460px at 80% -10%,rgba(242,181,68,.07),transparent 70%),var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6}
+.hidden{display:none!important}
+button{font-family:var(--mono)}
+input{font-family:var(--mono)}
+
+/* ------------------------------------------------------------------ 登录 */
+#login{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);padding:26px 24px}
+.card .mark{width:34px;height:34px;border:1px solid var(--amber);display:grid;place-items:center;color:var(--amber);font-family:var(--mono);font-weight:700;font-size:14px}
+.card h1{margin:14px 0 4px;font-family:var(--mono);font-size:18px;letter-spacing:.06em;font-weight:600}
+.card p.sub{margin:0 0 18px;color:var(--muted);font-size:12.5px}
+.card label{display:block;font-size:11.5px;color:var(--muted);margin:0 0 6px}
+.card input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:11px 12px;font-size:15px;outline:none}
+.card input:focus{border-color:rgba(242,181,68,.6)}
+.btn{border:1px solid var(--amber);background:rgba(242,181,68,.1);color:var(--amber);padding:10px 16px;font-size:13px;cursor:pointer;letter-spacing:.04em}
+.btn:hover{background:rgba(242,181,68,.18)}
+.btn.big{width:100%;margin-top:16px;padding:12px;font-size:14px}
+.btn.ghost{border-color:var(--line);color:var(--muted);background:transparent}
+.btn.ghost:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.btn.mint{border-color:var(--mint);color:var(--mint);background:rgba(79,209,165,.08)}
+.btn.red{border-color:rgba(239,107,107,.5);color:var(--red);background:rgba(239,107,107,.06)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.status{margin:0 0 16px;font-family:var(--mono);font-size:11.5px;color:var(--muted);border:1px solid var(--line);background:var(--panel2);padding:8px 10px}
+.status.live{color:var(--mint);border-color:rgba(79,209,165,.4)}
+.status.wait{color:var(--amber);border-color:rgba(242,181,68,.4)}
+.status.stop{color:var(--red);border-color:rgba(239,107,107,.4)}
+.note{margin-top:14px;font-size:11.5px;color:var(--dim);line-height:1.7;border-top:1px solid var(--line);padding-top:12px}
+.err{margin-top:12px;font-size:12.5px;color:var(--red);min-height:18px;font-family:var(--mono)}
+
+/* ------------------------------------------------------------------ 考试 */
+#exam{height:100%;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 16px;border-bottom:1px solid var(--line);background:rgba(11,15,20,.9)}
+.top .mark{width:26px;height:26px;border:1px solid var(--amber);display:grid;place-items:center;color:var(--amber);font-family:var(--mono);font-size:12px;font-weight:700}
+.top .who{font-family:var(--mono);font-size:13px}
+.top .who b{color:var(--text);font-weight:600}
+.top .who span{color:var(--dim);font-size:11px}
+.meter{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.meter .v{color:var(--text);font-size:15px}
+.meter.gold .v{color:var(--amber)}
+.meter.mint .v{color:var(--mint)}
+.meter.warn .v{color:var(--red)}
+.pbar{width:120px;height:4px;background:var(--panel2);border:1px solid var(--line)}
+.pbar i{display:block;height:100%;background:var(--mint);width:0}
+.spacer{margin-left:auto}
+.gate{font-family:var(--mono);font-size:11.5px;color:var(--amber);border:1px solid rgba(242,181,68,.4);padding:5px 10px}
+
+.layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(320px,440px) 1fr;gap:1px;background:var(--line)}
+aside{background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.aside-head{padding:11px 14px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:8px}
+.aside-head h2{margin:0;font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.aside-head small{color:var(--dim);font-size:11px;margin-left:auto;font-family:var(--mono)}
+.tasks{overflow:auto;flex:1;min-height:0;padding:4px 0 20px}
+.task{display:grid;grid-template-columns:26px 1fr auto;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(30,42,58,.5);align-items:start}
+.task .no{font-family:var(--mono);font-size:11.5px;color:var(--dim);padding-top:2px}
+.task .ti{min-width:0}
+.task .tt{font-size:13px;color:var(--text);display:flex;gap:8px;align-items:baseline}
+.task .tt .pf{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--dim);flex:none}
+.task .td{font-size:11.5px;color:var(--muted);margin-top:2px;word-break:break-word;line-height:1.55}
+.task .mk{width:18px;height:18px;border:1px solid var(--line);border-radius:50%;flex:none;margin-top:2px}
+.task.done{background:linear-gradient(90deg,rgba(79,209,165,.09),transparent 65%)}
+.task.done .no,.task.done .td{color:var(--dim)}
+.task.done .tt{color:var(--mint)}
+.task.done .mk{border-color:var(--mint);background:rgba(79,209,165,.18);display:grid;place-items:center;color:var(--mint);font-size:11px}
+.task.done .mk::after{content:"✓";font-family:var(--mono)}
+.task.done .pf{color:var(--mint)}
+@keyframes pop{0%{box-shadow:0 0 0 0 rgba(242,181,68,.55);background:rgba(242,181,68,.16)}100%{box-shadow:0 0 0 14px rgba(242,181,68,0);background:transparent}}
+.task.lit{animation:pop 1.1s ease-out}
+
+.term{background:var(--bg);display:flex;flex-direction:column;min-height:0;min-width:0}
+.term-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.chip{font-family:var(--mono);font-size:11px;padding:4px 9px;border:1px solid var(--line);color:var(--dim)}
+.chip.on{color:var(--amber);border-color:rgba(242,181,68,.5)}
+.chip.mode{color:var(--mint);border-color:rgba(79,209,165,.45)}
+.keys{display:flex;gap:6px;flex-wrap:wrap}
+.keys button{background:transparent;border:1px solid var(--line);color:var(--muted);font-size:11.5px;padding:4px 9px;cursor:pointer}
+.keys button:hover{color:var(--amber);border-color:rgba(242,181,68,.5)}
+.out{flex:1;min-height:0;overflow:auto;padding:14px 16px 6px;font-family:var(--mono);font-size:13px;line-height:1.62;white-space:pre-wrap;word-break:break-word}
+.out .sys{color:var(--dim)}
+.out .warnline{color:var(--amber)}
+.out .okline{color:var(--mint)}
+.out .block{margin-bottom:9px}
+.out .cline{display:flex;gap:8px;min-width:0}
+.out .cp{color:var(--amber);flex:none;white-space:pre}
+.out .cc{color:var(--text);white-space:pre-wrap;word-break:break-word}
+.out .cc.secret{color:var(--dim)}
+.out .cres{color:var(--muted)}
+.cmdrow{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);background:var(--panel);padding:10px 14px}
+.cmdrow .p{font-family:var(--mono);font-size:13px;color:var(--amber);flex:none}
+#cmd{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--text);font-size:14px;padding:6px 0}
+#cmd:disabled{color:var(--dim)}
+.cmdrow .go{border:1px solid var(--line);background:transparent;color:var(--muted);padding:6px 12px;cursor:pointer;font-size:12px}
+.cmdrow .go:hover{color:var(--amber);border-color:rgba(242,181,68,.5)}
+
+/* ------------------------------------------------------------------ 弹层 */
+.modal{position:fixed;inset:0;z-index:90;display:none}
+.modal.on{display:block}
+.mask{position:absolute;inset:0;background:rgba(4,7,11,.78);backdrop-filter:blur(2px)}
+.sheet{position:relative;margin:6vh auto 0;width:min(680px,calc(100vw - 28px));max-height:86vh;overflow:auto;background:var(--panel);border:1px solid var(--line)}
+.sheet .h{padding:16px 20px;border-bottom:1px solid var(--line)}
+.sheet .h h3{margin:0;font-family:var(--mono);font-size:14px;letter-spacing:.08em}
+.big{display:flex;gap:26px;align-items:baseline;padding:18px 20px 6px;flex-wrap:wrap}
+.big .n{font-family:var(--mono);font-size:40px;color:var(--amber);line-height:1}
+.big .k{font-size:11px;color:var(--dim);letter-spacing:.1em;font-family:var(--mono)}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin:14px 20px}
+.kv div{background:var(--panel2);padding:10px 12px}
+.kv .l{font-size:10.5px;color:var(--dim);letter-spacing:.05em}
+.kv .v{font-family:var(--mono);font-size:16px;color:var(--text)}
+.dlist{padding:4px 20px 14px}
+.dlist .row{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid rgba(30,42,58,.6);font-size:12.5px}
+.dlist .row .no{font-family:var(--mono);color:var(--dim);width:28px;flex:none}
+.dlist .row .t{color:var(--muted);min-width:0}
+.dlist .row.pass .t{color:var(--text)}
+.dlist .row .st{margin-left:auto;font-family:var(--mono);font-size:11px;flex:none}
+.dlist .row.pass .st{color:var(--mint)}
+.dlist .row.unpass .st{color:var(--dim)}
+.acts{display:flex;gap:10px;padding:4px 20px 20px;flex-wrap:wrap}
+.acts .btn{min-height:38px}
+
+/* ------------------------------------------- 退出全屏：模糊遮罩 + 恢复按钮 */
+/* 借鉴主目录学生端 fs-lock：考试期间退出全屏即锁界面，背景做高斯模糊，
+   学生必须点按钮补一次用户手势重新进入全屏，才能继续作答。 */
+#fsLock{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:rgba(6,10,16,.72);
+  -webkit-backdrop-filter:blur(12px) saturate(.8);backdrop-filter:blur(12px) saturate(.8)}
+#fsLock .box{width:min(460px,100%);background:rgba(16,23,34,.94);
+  border:1px solid rgba(242,181,68,.45);padding:28px 26px;box-shadow:0 18px 60px rgba(0,0,0,.55)}
+#fsLock .t{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--amber);letter-spacing:.04em}
+#fsLock .s{font-size:13px;color:var(--muted);line-height:1.8;margin:12px 0 20px}
+#fsLock .btn{min-height:42px;padding:11px 20px;font-size:14px}
+#fsLock .tip{font-family:var(--mono);font-size:11.5px;color:var(--red);min-height:18px;margin-top:10px}
+@media(max-width:860px){
+  .layout{grid-template-columns:1fr;grid-template-rows:minmax(180px,40%) 1fr}
+  .kv{grid-template-columns:repeat(2,1fr)}
+  .top .meter.hide-sm{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ------------------------------------------------------------ 登录 -->
+<div id="login">
+  <div class="card">
+    <div class="mark">&gt;_</div>
+    <h1>Linux 基础命令实操考核</h1>
+    <p class="sub">共 <b id="lnTotal">37</b> 题 · 满分 100 分</p>
+    <div class="status" id="loginGate">正在连接考场…</div>
+    <label for="inName">姓名</label>
+    <input id="inName" maxlength="32" placeholder="请输入本人真实姓名" autocomplete="off">
+    <div class="err" id="loginErr"></div>
+    <button class="btn big" id="btnEnter">开始考试</button>
+    <div class="note">姓名用于绑定考试环境，进入后不可修改；作答期间请勿退出全屏。</div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------ 考试 -->
+<div id="exam" class="hidden">
+  <div class="top">
+    <div class="mark">&gt;_</div>
+    <div class="who"><b id="tName">--</b></div>
+    <div class="meter mint"><span>已完成</span><span class="v" id="tDone">0</span><span id="tTotal">/37</span>
+      <span class="pbar"><i id="tBar"></i></span></div>
+    <div class="meter gold"><span>分数</span><span class="v" id="tScore">0</span></div>
+    <div class="spacer"></div>
+    <div class="gate hidden" id="tGate">等待开考</div>
+    <div class="meter"><span>剩余</span><span class="v" id="tLeft">--:--</span></div>
+    <button class="btn red" id="btnFinish">交卷</button>
+  </div>
+
+  <div class="layout">
+    <aside>
+      <div class="aside-head">
+        <h2>考题</h2>
+        <small id="asideCount">共 37 题</small>
+      </div>
+      <div class="tasks" id="taskList"></div>
+    </aside>
+
+    <section class="term">
+      <div class="term-bar">
+        <span class="chip" id="chipMode">就绪</span>
+        <div class="keys hidden" id="keyRow">
+          <button data-k="i">i 插入</button>
+          <button data-k="ESC">Esc 退插入</button>
+          <button data-k=":wq">:wq 存退</button>
+          <button data-k=":q!">:q! 弃改</button>
+          <button data-k=" ">空格 翻页</button>
+          <button data-k="q">q 退出</button>
+        </div>
+        <div class="spacer"></div>
+        <span class="chip" id="chipPen">退出全屏 0 次</span>
+        <button class="ghost" id="btnClear" style="background:transparent;border:1px solid var(--line);color:var(--muted);padding:4px 9px;font-size:11.5px;cursor:pointer">清屏</button>
+      </div>
+      <div class="out" id="out"></div>
+      <div class="cmdrow">
+        <span class="p" id="promptShow">$</span>
+        <input id="cmd" autocomplete="off" spellcheck="false" placeholder="输入 Linux 命令后回车">
+        <button class="go" id="btnRun">执行</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------ 成绩 -->
+<div class="modal" id="resultModal">
+  <div class="mask"></div>
+  <div class="sheet">
+    <div class="h"><h3 id="rTitle">考核成绩</h3></div>
+    <div class="big"><div><div class="n" id="rScore">0</div><div class="k">得分</div></div>
+      <div><div class="n" id="rDone" style="color:var(--mint)">0</div><div class="k">完成题数</div></div></div>
+    <div class="kv">
+      <div><div class="l">用时</div><div class="v" id="rElapsed">--</div></div>
+      <div><div class="l">正确率</div><div class="v" id="rRate">--</div></div>
+      <div><div class="l">退出全屏扣分</div><div class="v" id="rPen">--</div></div>
+      <div><div class="l">姓名</div><div class="v" id="rName">--</div></div>
+    </div>
+    <div class="dlist" id="rList"></div>
+    <div class="acts">
+      <button class="btn ghost" id="btnCloseResult">返回题单</button>
+      <button class="btn" id="btnBackLogin">退出考试</button>
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------- 退出全屏后：模糊遮罩 + 恢复全屏按钮 -->
+<div id="fsLock" class="hidden">
+  <div class="box">
+    <div class="t">已退出全屏</div>
+    <div class="s">考试期间必须保持全屏模式。当前界面已被锁定并做模糊处理，请点击下方按钮恢复全屏后继续作答。</div>
+    <button class="btn" type="button" id="btnFsRestore">恢复全屏继续考试</button>
+    <div class="tip" id="fsTip"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const LS_NAME = "lite_exam_name";
+
+let sid = "", tasks = [], doneKeys = new Set(), running = false;
+let remain = 0, toStart = 0, gateStatus = "open", penalty = 0, total = 37;
+let cmdHist = [], histIdx = -1, fsEntered = false, fsGuardOn = false, busy = false;
+let fsWasFull = false, fsLockShown = false;
+
+function fmt(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+  return h > 0 ? h + ":" + String(m).padStart(2, "0") + ":" + String(x).padStart(2, "0")
+               : String(m).padStart(2, "0") + ":" + String(x).padStart(2, "0");
+}
+/* 成绩一律整数分，兼容旧接口返回的一位小数 */
+function scoreText(v) { return String(Math.max(0, Math.round(Number(v) || 0))); }
+async function api(path, body) {
+  const opt = body === undefined ? {} : {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  };
+  const res = await fetch(path, opt);
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* 空响应体 */ }
+  if (!res.ok) {
+    const e = new Error((data && data.error) || ("请求失败 " + res.status));
+    e.status = res.status; e.data = data; throw e;
+  }
+  return data;
+}
+
+/* ------------------------------------------------------------------ 输出区 */
+function scrollBottom() { const o = $("out"); o.scrollTop = o.scrollHeight; }
+function sysLine(text, cls) {
+  const d = document.createElement("div");
+  d.className = "sys " + (cls || "");
+  d.textContent = text;
+  $("out").appendChild(d);
+  scrollBottom();
+}
+function echo(prompt, line, output, secret) {
+  const box = document.createElement("div");
+  box.className = "block";
+  const row = document.createElement("div");
+  row.className = "cline";
+  const p = document.createElement("span");
+  p.className = "cp"; p.textContent = prompt || "$";
+  const c = document.createElement("span");
+  c.className = "cc" + (secret ? " secret" : "");
+  c.textContent = secret ? line.replace(/./g, "•") : line;
+  row.appendChild(p); row.appendChild(c);
+  box.appendChild(row);
+  if (output) {
+    const r = document.createElement("div");
+    r.className = "cres"; r.textContent = output;
+    box.appendChild(r);
+  }
+  $("out").appendChild(box);
+  scrollBottom();
+}
+
+/* ------------------------------------------------------------------ 题单 */
+function renderTasks(newly) {
+  total = tasks.length || total;
+  $("tTotal").textContent = "/" + total;
+  $("lnTotal").textContent = total;
+  $("asideCount").textContent = "共 " + total + " 题";
+  const wrap = $("taskList");
+  wrap.innerHTML = "";
+  tasks.forEach(t => {
+    const row = document.createElement("div");
+    row.className = "task" + (t.done ? " done" : "");
+    row.dataset.key = t.key;
+    const no = document.createElement("div"); no.className = "no"; no.textContent = t.no;
+    const bi = document.createElement("div"); bi.className = "ti";
+    const tt = document.createElement("div"); tt.className = "tt";
+    const tx = document.createElement("span"); tx.textContent = t.title;
+    const pf = document.createElement("span"); pf.className = "pf"; pf.textContent = t.points + "分";
+    tt.appendChild(tx); tt.appendChild(pf);
+    const td = document.createElement("div"); td.className = "td"; td.textContent = t.task;
+    bi.appendChild(tt); bi.appendChild(td);
+    const mk = document.createElement("div"); mk.className = "mk";
+    row.appendChild(no); row.appendChild(bi); row.appendChild(mk);
+    wrap.appendChild(row);
+  });
+  const dn = tasks.filter(t => t.done).length;
+  $("tDone").textContent = dn;
+  $("tBar").style.width = (total ? dn / total * 100 : 0) + "%";
+  newly.forEach(k => {
+    const el = wrap.querySelector('[data-key="' + k + '"]');
+    if (el) { el.classList.add("lit"); el.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+  });
+}
+function applyTasks(list) {
+  tasks = list || [];
+  doneKeys = new Set(tasks.filter(t => t.done).map(t => t.key));
+}
+
+/* ------------------------------------------------------------------ 顶栏 */
+function applyTop(r) {
+  if (typeof r.score === "number") $("tScore").textContent = scoreText(r.score);
+  if (typeof r.remaining === "number") remain = r.remaining;
+  if (typeof r.penalty === "number") penalty = r.penalty;
+  if (r.prompt) $("promptShow").textContent = r.prompt;
+  if (r.badge !== undefined) setBadge(r.badge, r.awaiting);
+  $("chipPen").textContent = "退出全屏 " + penalty + " 次";
+  $("chipPen").classList.toggle("on", penalty > 0);
+}
+function setBadge(badge, awaiting) {
+  const chip = $("chipMode");
+  chip.textContent = badge || "就绪";
+  chip.classList.toggle("mode", !!badge);
+  $("keyRow").classList.toggle("hidden", !awaiting);
+  const ph = badge === "等待输入密码" ? "输入密码后回车（屏幕上不会显示）"
+    : badge && badge.indexOf("插入模式") >= 0 ? "正在 vim 插入模式：输入正文，再按 Esc 退出"
+    : badge && badge.indexOf("less") >= 0 ? "分页中：空格翻页，q 退出"
+    : badge && badge.indexOf("普通模式") >= 0 ? "vim 普通模式：i 插入 / :wq 保存退出 / :q! 放弃"
+    : "输入 Linux 命令后回车";
+  $("cmd").placeholder = ph;
+}
+
+/* ------------------------------------------------------------------ 结果 */
+function showResult(sm) {
+  $("rScore").textContent = scoreText(sm.score);
+  $("rDone").textContent = (sm.passed || 0) + "/" + (sm.total || total);
+  $("rElapsed").textContent = fmt(sm.elapsed);
+  const t = sm.total || total;
+  $("rRate").textContent = t ? Math.round((sm.passed || 0) / t * 100) + "%" : "--";
+  $("rPen").textContent = "-" + (sm.penalty || 0);
+  $("rName").textContent = sm.name || "";
+  const list = $("rList");
+  list.innerHTML = "";
+  (sm.detail || []).forEach(d => {
+    const row = document.createElement("div");
+    row.className = "row " + (d.status === "pass" ? "pass" : "unpass");
+    const no = document.createElement("span"); no.className = "no"; no.textContent = d.no;
+    const tx = document.createElement("span"); tx.className = "t"; tx.textContent = d.title;
+    const st = document.createElement("span"); st.className = "st";
+    st.textContent = d.status === "pass" ? "通过" : "未通过";
+    row.appendChild(no); row.appendChild(tx); row.appendChild(st);
+    list.appendChild(row);
+  });
+  $("resultModal").classList.add("on");
+  leaveFs();
+}
+
+/* ------------------------------------------------------------------ 全屏 */
+/* 借鉴主目录学生端：考试期间强制全屏。一旦退出，压上半透明模糊遮罩并锁住作答区，
+   只留「恢复全屏继续考试」按钮补一次用户手势；恢复成功后遮罩自动消失。 */
+function isFs() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+function requestFs() {
+  const el = document.documentElement;
+  if (el.requestFullscreen) return el.requestFullscreen();
+  if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+  return Promise.reject(new Error("当前浏览器不支持全屏"));
+}
+function syncCmdState() {
+  const locked = gateStatus === "before" || gateStatus === "not_set" || gateStatus === "closed";
+  $("cmd").disabled = busy || fsLockShown || locked || !!(tasks.length && doneKeys.size >= total);
+}
+function setFsLock(on) {
+  const box = $("fsLock");
+  fsLockShown = !!on;
+  box.classList.toggle("hidden", !fsLockShown);
+  $("fsTip").textContent = "";
+  // 遮罩层盖住的是指针事件，键盘焦点仍可能留在命令框，需显式失焦 + 禁用输入
+  $("exam").inert = fsLockShown;
+  if (fsLockShown) {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    $("cmd").disabled = true;
+  } else {
+    syncCmdState();
+  }
+}
+async function enterFs() {
+  fsGuardOn = true;
+  fsWasFull = isFs();
+  fsEntered = fsWasFull;
+  try {
+    await requestFs();
+    setFsLock(false);
+  } catch (e) { /* 刷新恢复时浏览器可能以"缺用户手势"拒绝，下面复查 */ }
+  // 全屏请求是异步的；1.5 秒后复查，仍未全屏就压上遮罩让学生点按钮补手势
+  setTimeout(() => {
+    if (fsGuardOn && !isFs()) setFsLock(true);
+  }, 1500);
+}
+function leaveFs() {
+  fsGuardOn = false;
+  fsEntered = false;
+  fsWasFull = false;
+  setFsLock(false);
+  try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) { }
+  try { if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen(); } catch (e) { }
+}
+function onFsChange() {
+  if (!fsGuardOn) return;
+  const now = isFs();
+  if (!now) {
+    // 由全屏态退出：记一次违规，后端扣 1 分（未开考 / 已结束不计罚）
+    if (fsWasFull && gateStatus === "open" && sid) {
+      api("/api/exam/fullscreen", { sid }).then(r => {
+        penalty = r.penalty || penalty;
+        $("chipPen").textContent = "退出全屏 " + penalty + " 次";
+        $("chipPen").classList.add("on");
+        $("tScore").textContent = scoreText(r.score);
+        sysLine("已退出全屏，扣 1 分。", "warnline");
+      }).catch(() => { });
+    }
+    setFsLock(true);
+  } else {
+    setFsLock(false);
+  }
+  fsWasFull = now;
+  fsEntered = now;
+}
+document.addEventListener("fullscreenchange", onFsChange);
+document.addEventListener("webkitfullscreenchange", onFsChange);
+
+/* ------------------------------------------------------------------ 闸门 */
+function applyGate(g) {
+  if (!g) return;
+  gateStatus = g.status;
+  toStart = g.seconds_to_start || 0;
+  const box = $("tGate");
+  // 没排期和没到点都锁作答：前者是老师还没设定开考时间，后者是时间未到
+  const locked = gateStatus === "before" || gateStatus === "not_set";
+  box.classList.toggle("hidden", !locked);
+  if (gateStatus === "not_set") box.textContent = "等待教师设置开考时间";
+  else box.textContent = "距开考 " + fmt(toStart);
+  syncCmdState();
+  if (gateStatus === "before") {
+    $("cmd").placeholder = "尚未开考，" + fmt(toStart) + " 后可以开始作答（现在可以先看题单）";
+  } else if (gateStatus === "not_set") {
+    $("cmd").placeholder = "等待教师设置开考时间";
+  }
+}
+
+/* ---------------------------------------------------- 考场状态（登录页） */
+const EARLY_SECONDS = 300;   // 与后端 server.EARLY_SECONDS 保持一致
+let gStatus = "", gToStart = 0;
+
+function renderLoginGate() {
+  const box = $("loginGate");
+  if (!box) return;
+  const text = {
+    not_set: "考试状态：尚未开放，等待教师设置开考时间",
+    before: "考试状态：距开考 " + fmt(gToStart),
+    closed: "考试状态：本场考试已结束",
+    open: "考试状态：进行中"
+  }[gStatus] || "正在连接考场…";
+  box.textContent = text;
+  box.className = "status " + ({ open: "live", before: "wait", not_set: "wait", closed: "stop" }[gStatus] || "");
+  const early = gStatus === "before" && gToStart > 0 && gToStart <= EARLY_SECONDS;
+  $("btnEnter").disabled = gStatus !== "open" && !early;
+}
+async function syncGate() {
+  try {
+    const h = await api("/api/health");
+    total = h.steps || total;
+    $("lnTotal").textContent = total;
+    const g = h.gate || {};
+    gStatus = g.status || "";
+    gToStart = g.seconds_to_start || 0;
+  } catch (e) {
+    gStatus = "";
+  }
+  renderLoginGate();
+}
+
+/* ------------------------------------------------------------------ 进入 */
+function toExam(state) {
+  sid = state.sid;
+  $("login").classList.add("hidden");
+  $("exam").classList.remove("hidden");
+  sessionStorage.setItem("lite_sid", sid);
+  localStorage.setItem(LS_NAME, state.name || "");
+  $("tName").textContent = state.name || "";
+  total = state.total || total;
+  applyTasks(state.tasks);
+  renderTasks([]);
+  applyTop(state);
+  applyGate(state.gate);
+  $("out").innerHTML = "";
+  const hist = (state.history || [])
+    .map(h => (typeof h === "string" ? h : (h && h.in) || "")).filter(Boolean);
+  if (hist.length) {
+    sysLine("本场已提交过的命令：");
+    hist.forEach(line => sysLine("$ " + line));
+  }
+  enterFs();
+  $("cmd").focus();
+}
+
+async function startExam() {
+  const name = $("inName").value.trim();
+  if (!name) { $("loginErr").textContent = "请填写姓名"; $("inName").focus(); return; }
+  $("btnEnter").disabled = true;
+  $("loginErr").textContent = "";
+  try {
+    let state;
+    try {
+      state = await api("/api/exam/resume", { sid: sessionStorage.getItem("lite_sid") || "", name });
+    } catch (e) {
+      if (e.status !== 404) throw e;
+      state = await api("/api/exam/start", { name });
+    }
+    toExam(state);
+  } catch (e) {
+    $("loginErr").textContent = e.message || "进入失败";
+  } finally {
+    $("btnEnter").disabled = false;
+  }
+}
+async function autoResume() {
+  const name = localStorage.getItem(LS_NAME) || "";
+  const saved = sessionStorage.getItem("lite_sid") || "";
+  if (!name && !saved) return;
+  try {
+    const state = await api("/api/exam/resume", { sid: saved, name });
+    if (state.finished) {
+      toExam(state);
+      showResult(await api("/api/result?sid=" + encodeURIComponent(state.sid)));
+      return;
+    }
+    toExam(state);
+  } catch (e) { /* 没有可恢复的会话，正常走登录 */ }
+}
+
+/* ------------------------------------------------------------------ 执行 */
+async function runLine(line) {
+  if (busy || fsLockShown) return;
+  if (gateStatus !== "open") { sysLine("考试未开放，不能执行命令。", "warnline"); return; }
+  if (line.length) cmdHist.push(line);
+  histIdx = cmdHist.length;
+  $("cmd").value = "";
+  busy = true;
+  $("cmd").disabled = true;
+  try {
+    const r = await api("/api/exam/run", { sid, line });
+    const secret = !!($("chipMode").textContent || "").includes("密码");
+    if (r.cleared) $("out").innerHTML = "";
+    else echo(r.prompt, line, r.output, secret);
+    applyTasks(r.tasks);
+    renderTasks(r.passed_keys || []);
+    applyTop(r);
+    if (r.finished) {
+      const sm = await api("/api/result?sid=" + encodeURIComponent(sid)).catch(() => null);
+      showResult(sm || { score: r.score, passed: r.progress.done, total: r.total, elapsed: r.elapsed });
+      return;
+    }
+    if (r.awaiting) setBadge(r.badge, true);
+  } catch (e) {
+    if (e.status === 404) { sysLine("会话已失效：" + e.message, "warnline"); backToLogin(); return; }
+    if (e.status === 403) {
+      sysLine(e.message, "warnline");
+      applyGate(e.data && e.data.gate);
+      return;
+    }
+    if (e.status === 409) { showResult(e.data && e.data.summary); return; }
+    sysLine(e.message, "warnline");
+  } finally {
+    busy = false;
+    syncCmdState();
+    if (!fsLockShown) $("cmd").focus();
+  }
+}
+
+function backToLogin() {
+  sessionStorage.removeItem("lite_sid");
+  $("resultModal").classList.remove("on");
+  $("exam").classList.add("hidden");
+  $("login").classList.remove("hidden");
+  leaveFs();
+  sid = "";
+  gateStatus = "";
+  syncGate();
+}
+
+async function doFinish() {
+  if (!confirm("确认交卷？交卷后成绩立即锁定，不能再作答。")) return;
+  $("btnFinish").disabled = true;
+  try {
+    const sm = await api("/api/exam/finish", { sid });
+    showResult(sm);
+  } catch (e) {
+    sysLine(e.message || "交卷失败", "warnline");
+  } finally {
+    $("btnFinish").disabled = false;
+  }
+}
+
+/* ------------------------------------------------------------------ 心跳 */
+setInterval(() => {
+  if (!$("login").classList.contains("hidden")) {
+    // 登录页上的开考倒计时：本地走秒，归零后向服务器复核一次，闸门一变按钮就放开
+    if (gStatus === "before" && gToStart > 0) {
+      gToStart = Math.max(0, gToStart - 1);
+      renderLoginGate();
+      if (gToStart === 0) syncGate();
+    }
+    return;
+  }
+  if (gateStatus === "before") {
+    toStart = Math.max(0, toStart - 1);
+    $("tGate").textContent = "距开考 " + fmt(toStart);
+    if (toStart === 0) pollState();
+    return;
+  }
+  if (!sid || $("exam").classList.contains("hidden")) return;
+  if (busy) return;
+  remain = Math.max(0, remain - 1);
+  const el = $("tLeft");
+  el.textContent = fmt(remain);
+  el.parentElement.classList.toggle("warn", remain <= 300);
+}, 1000);
+
+async function pollState() {
+  if (!sid || $("exam").classList.contains("hidden")) return;
+  try {
+    const st = await api("/api/exam/state?sid=" + encodeURIComponent(sid));
+    applyTasks(st.tasks);
+    renderTasks([]);
+    const prev = gateStatus;
+    applyTop(st);
+    applyGate(st.gate);
+    if (prev !== "open" && st.gate && st.gate.status === "open") {
+      sysLine("考试开始，可以作答。", "okline");
+    }
+    if (st.gate && st.gate.status === "closed" && prev !== "closed") {
+      sysLine("本场考试已结束，成绩已锁定。", "warnline");
+    }
+    gateStatus = st.gate ? st.gate.status : gateStatus;
+    remain = st.remaining;
+    $("tLeft").textContent = fmt(remain);
+    if (st.finished) showResult(await api("/api/result?sid=" + encodeURIComponent(sid)));
+  } catch (e) {
+    if (e.status === 404) backToLogin();
+  }
+}
+setInterval(pollState, 15000);
+setInterval(() => { if (!$("login").classList.contains("hidden")) syncGate(); }, 5000);
+
+/* ------------------------------------------------------------------ 绑定 */
+$("btnEnter").addEventListener("click", startExam);
+$("inName").addEventListener("keydown", e => { if (e.key === "Enter") startExam(); });
+$("btnFinish").addEventListener("click", doFinish);
+$("btnClear").addEventListener("click", () => { $("out").innerHTML = ""; });
+$("btnCloseResult").addEventListener("click", () => $("resultModal").classList.remove("on"));
+$("btnBackLogin").addEventListener("click", backToLogin);
+$("btnRun").addEventListener("click", () => runLine($("cmd").value));
+$("btnFsRestore").addEventListener("click", async () => {
+  try {
+    await requestFs();
+    if (!isFs()) throw new Error("浏览器未进入全屏");
+    fsWasFull = true;
+    setFsLock(false);
+    $("cmd").focus();
+  } catch (e) {
+    setFsLock(true);
+    $("fsTip").textContent = "浏览器拒绝了全屏请求，请再点一次；若仍失败，按 F11 后重试。";
+  }
+});
+$("cmd").addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); const v = $("cmd").value; runLine(v); }
+  else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    if (histIdx > 0) { histIdx--; $("cmd").value = cmdHist[histIdx] || ""; }
+  } else if (e.key === "ArrowDown") {
+    e.preventDefault();
+    if (histIdx < cmdHist.length - 1) { histIdx++; $("cmd").value = cmdHist[histIdx] || ""; }
+    else { histIdx = cmdHist.length; $("cmd").value = ""; }
+  }
+});
+$("keyRow").addEventListener("click", e => {
+  const k = e.target.dataset && e.target.dataset.k;
+  if (k) runLine(k);
+});
+window.addEventListener("beforeunload", () => {
+  if (sid) sessionStorage.setItem("lite_sid", sid);
+});
+syncGate().then(autoResume);
+</script>
+</body>
+</html>
